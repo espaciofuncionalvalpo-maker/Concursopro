@@ -662,6 +662,30 @@ function renderDrawTab(c) {
   sel.innerHTML = pending.length ? pending.map((p) => `<option value="${p.id}">${p.isMajor ? '⭐ ' : ''}${escapeHtml(p.name)}</option>`).join('') : '<option value="">No hay premios pendientes</option>';
   if (pending.some((p) => p.id === prevVal)) sel.value = prevVal;
 
+  const activeCount = c.tickets.filter((t) => !t.wonPrizeId).length;
+  const poolEl = document.getElementById('drawPoolInfo');
+  const btn = document.getElementById('btnStartDraw');
+
+  document.getElementById('drawBackupNotice').classList.toggle('hidden', !(c.unsavedChanges > 0));
+
+  if (isSimMode) {
+    poolEl.textContent = `Modo ensayo activo · Tickets activos reales: ${activeCount}`;
+    btn.disabled = isDrawing;
+    btn.textContent = isDrawing ? '🧪 ENSAYANDO...' : '🧪 PROBAR SORTEO (SIMULACRO)';
+  } else if (!pending.length) {
+    poolEl.textContent = 'Agrega un premio pendiente en la pestaña Premios para sortear.';
+    btn.disabled = true;
+    btn.textContent = '🎲 SIN PREMIOS PENDIENTES';
+  } else if (!activeCount) {
+    poolEl.textContent = 'No hay tickets activos. Registra ventas o activa Simulacro.';
+    btn.disabled = true;
+    btn.textContent = '🎲 SIN TICKETS ACTIVOS';
+  } else {
+    poolEl.textContent = `Tickets activos: ${activeCount} · Premios pendientes: ${pending.length}`;
+    btn.disabled = isDrawing;
+    btn.textContent = isDrawing ? '✨ SORTEANDO...' : '🎲 SORTEAR GANADOR';
+  }
+
   const simBtn = document.getElementById('btnSimToggle');
   simBtn.textContent = isSimMode ? '🧪 Simulacro: ON' : '🧪 Simulacro: OFF';
   simBtn.className = isSimMode ? 'btn btn-info btn-sm' : 'btn btn-secondary btn-sm'; simBtn.style.flex = '1';
@@ -670,15 +694,32 @@ function renderDrawTab(c) {
   document.getElementById('liveStage').classList.toggle('sim-mode', isSimMode);
   document.getElementById('simRibbon').classList.toggle('hidden', !isSimMode);
   document.getElementById('liveContestBadge').textContent = (isSimMode ? 'PRUEBA · ' : '') + c.name.toUpperCase();
-  if (!isDrawing) document.getElementById('btnStartDraw').textContent = isSimMode ? '🧪 PROBAR SORTEO (SIMULACRO)' : '🎲 SORTEAR GANADOR';
   updateLiveStageHeader();
 
   const winners = c.prizes.filter((p) => p.winner);
+  document.getElementById('btnUndoLastWinner').classList.toggle('hidden', !winners.length || isSimMode);
   document.getElementById('winnersList').innerHTML = winners.length ? winners.map((p) => `<div class="list-item"><div class="item-main">
     <div class="item-title">${p.isMajor ? '⭐ ' : ''}🏆 ${escapeHtml(p.name)}</div>
     <div class="item-sub">${escapeHtml(p.winner.buyerName)} (${maskRut(p.winner.buyerRut)})</div>
     <div class="code-chips"><span class="chip winner">${escapeHtml(p.winner.code)}</span></div>
   </div>${p.winner.buyerPhone ? `<button class="btn btn-primary btn-sm" onclick="contactWinner('${p.id}')">💬 WA</button>` : ''}</div>`).join('') : '<div class="hint" style="margin:0;">Todavía no se ha sorteado ningún premio.</div>';
+}
+
+async function undoLastWinner() {
+  if (isDrawing || isSimMode) return;
+  const c = getActiveContest();
+  const drawn = c.prizes.filter((p) => p.winner).sort((a, b) => new Date(b.winner.drawnAt || 0) - new Date(a.winner.drawnAt || 0));
+  const lastPrize = drawn[0];
+  if (!lastPrize) return;
+  if (!confirm(`¿Anular a ${lastPrize.winner.buyerName} (${lastPrize.winner.code}) en "${lastPrize.name}" y volver a dejar el premio pendiente?`)) return;
+
+  const t = c.tickets.find((x) => x.code === lastPrize.winner.code && x.wonPrizeId === lastPrize.id);
+  if (t) t.wonPrizeId = null;
+  lastPrize.winner = null;
+  c.unsavedChanges = (c.unsavedChanges || 0) + 1;
+  await saveContest(c);
+  renderAll();
+  showToast('Último ganador anulado');
 }
 
 function updateLiveStageHeader() {
