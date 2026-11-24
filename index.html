@@ -250,4 +250,45 @@
         </details>
       </div>
       <div class="card">
-        <div class="card-title">⚙️
+        <div class="card-title">⚙️ Datos del concurso actual</div>
+        <label>Nombre</label><input id="editContestName" type="text" />
+        <label>Fecha del sorteo</label><input id="editContestDate" type="text" />
+        <label>Contacto / Red social en el ticket</label><input id="editContestContact" type="text" />
+        <button class="btn btn-secondary" onclick="saveCurrentContestMeta()">Guardar cambios</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="ticketModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="card-title"><span id="ticketModalTitle">🎟️ Ticket listo para enviar</span><button class="btn btn-secondary btn-sm" onclick="closeTicketModal()">✕</button></div>
+      <div id="ticketModalSummary" class="modal-pill hidden"></div>
+      <img id="ticketPreviewImg" class="ticket-preview" alt="Comprobante" />
+      <div id="ticketModalActions" style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary" onclick="shareCurrentTicket()">📤 Enviar imagen por WhatsApp</button>
+        <div class="row">
+          <button class="btn btn-secondary" onclick="openWhatsAppChat()">💬 Abrir chat WA</button>
+          <button class="btn btn-secondary" onclick="downloadCurrentTicket()">💾 Guardar PNG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="qrScannerModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="card-title"><span>📷 Escáner QR de Tickets</span><button class="btn btn-secondary btn-sm" onclick="closeQrScanner()">✕</button></div>
+      <video id="qrVideo" class="scanner-video" autoplay playsinline muted></video>
+      <div id="qrScannerStatus" class="hint" style="margin-top:0;text-align:center;">Apunta la cámara al QR del comprobante...</div>
+      <button class="btn btn-secondary" onclick="closeQrScanner()">Cerrar escáner</button>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="sell" onclick="switchTab('sell')"><span class="ico">🎟️</span>Vender</button>
+    <button class="nav-btn" data-tab="prizes" onclick="switchTab('prizes')"><span class="ico">🎁</span>Premios</button>
+    <button class="nav-btn" data-tab="draw" onclick="switchTab('draw')"><span class="ico">🎲</span>Sorteo</button>
+    <button class="nav-btn" data-tab="settings" onclick="switchTab('settings')"><span class="ico">⚙️</span>Ajustes</button>
+  </nav>
+  <script src="app.js"></script>
+</body>
+</html>
