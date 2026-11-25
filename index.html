@@ -2,293 +2,131 @@
 <html lang="es-CL">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0f172a" />
   <title>ConcursoPro</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="icon.svg" />
   <style>
-    :root {
-      --bg: #0f172a; --surface: #1e293b; --surface-2: #273549; --border: #334155;
-      --text: #f8fafc; --muted: #94a3b8; --primary: #10b981; --gold: #f59e0b;
-      --gold-soft: rgba(245, 158, 11, 0.15); --danger: #ef4444; --info: #38bdf8; --radius: 14px;
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin: 0; font-family: system-ui, -apple-system, Roboto, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 84px; line-height: 1.4; }
-    .topbar { position: sticky; top: 0; z-index: 30; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .brand { display: flex; flex-direction: column; min-width: 0; }
-    .brand-title { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .brand-sub { font-size: 12px; color: var(--muted); }
-    .stats-pill { background: var(--surface); border: 1px solid var(--border); padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--primary); white-space: nowrap; }
-    .backup-banner { background: rgba(245, 158, 11, 0.16); border-bottom: 1px solid rgba(245, 158, 11, 0.4); color: #fde68a; padding: 9px 16px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .backup-banner button { background: var(--gold); color: #111827; border: none; border-radius: 8px; padding: 6px 10px; font-weight: 800; font-size: 12px; cursor: pointer; }
-    .container { padding: 14px; max-width: 600px; margin: 0 auto; }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
-    .card-title { font-size: 15px; font-weight: 800; margin: 0 0 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
-    input, textarea, select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; font-size: 15px; font-family: inherit; margin-bottom: 10px; }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
-    .row { display: flex; gap: 8px; align-items: center; }
-    .row > * { flex: 1; }
-    .btn { width: 100%; border: none; border-radius: 11px; padding: 13px 14px; font-size: 15px; font-weight: 800; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 7px; transition: transform 0.08s ease; }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-primary { background: var(--primary); color: #052e16; }
-    .btn-gold { background: var(--gold); color: #1f1300; }
-    .btn-info { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
-    .btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
-    .btn-danger { background: rgba(239, 68, 68, 0.16); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); }
-    .btn-sm { padding: 8px 10px; font-size: 13px; border-radius: 8px; width: auto; flex: 0 0 auto; }
-    .packs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-    .pack-btn { background: var(--bg); border: 2px solid var(--border); border-radius: 12px; padding: 10px 6px; color: var(--text); text-align: center; cursor: pointer; position: relative; }
-    .pack-btn.selected { border-color: var(--primary); background: rgba(16, 185, 129, 0.12); }
-    .pack-btn.featured { border-color: rgba(245, 158, 11, 0.6); }
-    .pack-btn.featured.selected { border-color: var(--gold); background: var(--gold-soft); }
-    .pack-badge { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #111827; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
-    .pack-qty { font-size: 18px; font-weight: 900; display: block; margin-top: 2px; }
-    .pack-price { font-size: 14px; font-weight: 700; color: var(--primary); display: block; }
-    .pack-unit { font-size: 10px; color: var(--muted); }
-    .hint { font-size: 12px; color: var(--muted); margin-top: -6px; margin-bottom: 10px; }
-    .hint.warn { color: #fbbf24; }
-    .hint.ok { color: var(--primary); }
-    .quick-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 11px; padding: 10px; margin-bottom: 12px; }
-    .returning-box { background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 9px 11px; margin-bottom: 10px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #bae6fd; }
-    .list-item { background: var(--bg); border: 1px solid var(--border); border-radius: 11px; padding: 11px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .item-main { min-width: 0; flex: 1; }
-    .item-title { font-weight: 700; font-size: 14px; word-break: break-word; }
-    .item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .code-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-    .chip { font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700; background: var(--surface-2); border: 1px solid var(--border); padding: 3px 7px; border-radius: 6px; color: #e2e8f0; }
-    .chip.winner { background: var(--gold-soft); border-color: var(--gold); color: #fde68a; }
-    .theme-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
-    .theme-opt { border: 2px solid var(--border); border-radius: 11px; padding: 10px; background: var(--bg); color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
-    .theme-opt.active { border-color: var(--primary); background: rgba(16, 185, 129, 0.12); }
-    .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; }
-    .logo-preview-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; background: var(--bg); padding: 8px; border-radius: 10px; border: 1px solid var(--border); }
-    .logo-preview-wrap img { width: 56px; height: 56px; object-fit: contain; border-radius: 8px; background: #020617; }
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
-    .nav-btn { background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 700; padding: 6px 4px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
-    .nav-btn span.ico { font-size: 20px; line-height: 1; }
-    .nav-btn.active { color: var(--primary); background: rgba(16, 185, 129, 0.1); }
-    .modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(2, 6, 23, 0.88); display: none; align-items: center; justify-content: center; padding: 14px; }
-    .modal-backdrop.open { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto; padding: 16px; }
-    .ticket-preview { width: 100%; border-radius: 12px; border: 1px solid var(--border); display: block; margin-bottom: 10px; }
-    .modal-pill { background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: 700; text-align: center; margin-bottom: 10px; }
-    .live-stage { background: radial-gradient(circle at top, #1e293b 0%, #090d16 80%); border: 2px solid var(--gold); border-radius: 18px; padding: 20px 16px; text-align: center; margin-bottom: 14px; position: relative; overflow: hidden; }
-    .live-stage.sim-mode { border-color: var(--info); }
-    .sim-ribbon { background: var(--info); color: #082f49; font-size: 11px; font-weight: 900; padding: 5px 10px; border-radius: 8px; margin-bottom: 12px; }
-    body.live-fullscreen .topbar, body.live-fullscreen .backup-banner, body.live-fullscreen .bottom-nav, body.live-fullscreen .hide-in-live { display: none !important; }
-    body.live-fullscreen { padding-bottom: 16px; background: #050811; }
-    body.live-fullscreen .live-stage { min-height: 86vh; display: flex; flex-direction: column; justify-content: center; }
-    .live-badge { display: inline-block; background: var(--gold-soft); border: 1px solid var(--gold); color: #fde68a; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 999px; }
-    .live-prize-name { font-size: 24px; font-weight: 900; margin: 12px 0 18px; color: #fff; }
-    .roulette-box { background: #020617; border: 2px solid #334155; border-radius: 14px; padding: 22px 10px; margin-bottom: 18px; }
-    .roulette-code { font-family: ui-monospace, Menlo, monospace; font-size: 36px; font-weight: 900; letter-spacing: 3px; color: var(--gold); }
-    .roulette-winner { font-size: 20px; font-weight: 800; color: var(--primary); margin-top: 8px; min-height: 28px; }
-    .roulette-rut { font-size: 14px; color: var(--muted); min-height: 20px; }
-    .scanner-video { width: 100%; border-radius: 12px; background: #000; aspect-ratio: 4 / 3; object-fit: cover; margin-bottom: 10px; border: 2px solid var(--primary); }
-    #confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 100; display: none; }
-    .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 120; background: #059669; color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 13px; display: none; white-space: nowrap; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; }
-    .kpi-val { font-size: 18px; font-weight: 900; color: var(--text); }
-    .kpi-lbl { font-size: 11px; color: var(--muted); }
-    .hidden { display: none !important; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; padding: 16px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    .packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+    .pack { background: #0f172a; border: 2px solid #334155; color: #f8fafc; border-radius: 10px; padding: 10px; font-weight: 700; cursor: pointer; }
+    .pack.active { border-color: #10b981; background: rgba(16,185,129,0.15); }
+    input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 15px; }
+    button.main { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; background: #10b981; color: #052e16; margin-top: 4px; }
+    button.gold { background: #f59e0b; color: #1f1300; }
+    .item { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; margin-top: 8px; font-size: 13px; }
   </style>
 </head>
 <body>
-  <canvas id="confettiCanvas"></canvas>
-  <div id="toast" class="toast"></div>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-title" id="hdrContestName">Cargando...</div>
-      <div class="brand-sub" id="hdrContestDate"></div>
-    </div>
-    <div class="stats-pill" id="hdrRevenue">$0</div>
-  </header>
-  <div id="backupBanner" class="backup-banner hidden">
-    <span id="backupBannerText">⚠️ Cambios sin respaldar</span>
-    <button onclick="exportContestJson()">Respaldar</button>
-  </div>
-  <main class="container">
-    <section id="tab-sell" class="tab-panel active">
-      <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-val" id="kpiSales">0</div><div class="kpi-lbl">Ventas</div></div>
-        <div class="kpi"><div class="kpi-val" id="kpiTickets">0</div><div class="kpi-lbl">Tickets</div></div>
-        <div class="kpi"><div class="kpi-val" id="kpiPrizes">0</div><div class="kpi-lbl">Premios</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>⚡ Nueva Venta</span><button class="btn btn-secondary btn-sm" onclick="copySalesTemplate()">📋 Plantilla WA</button></div>
-        <div class="quick-box">
-          <label for="quickPasteBox">📥 Pegado rápido desde WhatsApp</label>
-          <textarea id="quickPasteBox" rows="2" placeholder="Pega aquí Nombre, RUT, WhatsApp o Pack..." style="margin-bottom:8px;"></textarea>
-          <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="applyQuickPaste()">Rellenar campos automáticamente</button>
-        </div>
-        <label>Elige el Pack</label>
-        <div class="packs-grid" id="packsContainer"></div>
-        <label for="buyerName">Nombre completo</label>
-        <input id="buyerName" type="text" placeholder="Ej: Camila Rojas" autocomplete="off" />
-        <div class="row">
-          <div><label for="buyerRut">RUT</label><input id="buyerRut" type="text" placeholder="18.456.789-2" oninput="onRutInput()" autocomplete="off" /></div>
-          <div><label for="buyerPhone">WhatsApp</label><input id="buyerPhone" type="tel" placeholder="+56912345678" autocomplete="off" /></div>
-        </div>
-        <div id="rutHint" class="hint">Verifica el abono real en tu banco antes de emitir.</div>
-        <div id="returningCustomerBox" class="returning-box hidden"></div>
-        <button class="btn btn-primary" onclick="createSale()">🎟️ Confirmar pago y generar ticket</button>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>🧾 Ventas recientes</span><span id="salesCountBadge" style="font-size:12px;color:var(--muted);">0</span></div>
-        <input id="salesSearch" type="text" placeholder="Buscar por nombre, RUT, ID o código..." oninput="renderSalesList()" />
-        <div id="salesList"></div>
-      </div>
-    </section>
-
-    <section id="tab-prizes" class="tab-panel">
-      <div class="card">
-        <div class="card-title">🎁 Agregar premio al concurso</div>
-        <label for="prizeName">Nombre del premio</label>
-        <input id="prizeName" type="text" placeholder="Ej: Parlante JBL / Giftcard $50.000" />
-        <label for="prizeDesc">Detalle o auspiciador (opcional)</label>
-        <input id="prizeDesc" type="text" placeholder="Ej: Entregado por Tienda X" />
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;color:var(--text);margin-bottom:12px;">
-          <input id="prizeMajor" type="checkbox" style="width:auto;margin:0;" /> ⭐ Marcar como Premio Mayor
-        </label>
-        <button class="btn btn-gold" onclick="addPrize()">➕ Agregar premio</button>
-      </div>
-      <div class="card">
-        <div class="card-title">🏆 Lista de premios (orden del sorteo)</div>
-        <div id="prizesList"></div>
-      </div>
-    </section>
-
-    <section id="tab-draw" class="tab-panel">
-      <div id="drawBackupNotice" class="returning-box hidden hide-in-live">
-        <span>💾 Tienes ventas o cambios sin respaldar. Exporta tu JSON antes del Live.</span>
-        <button type="button" class="btn btn-gold btn-sm" onclick="exportContestJson()">JSON</button>
-      </div>
-      <div class="card hide-in-live">
-        <div class="card-title"><span>🎬 Controles del Live</span><button class="btn btn-secondary btn-sm" onclick="toggleLiveFullscreen()">📺 Pantalla Live</button></div>
-        <div class="row" style="margin-bottom:12px;">
-          <button id="btnSimToggle" class="btn btn-secondary btn-sm" style="flex:1;" onclick="toggleSimMode()">🧪 Simulacro: OFF</button>
-          <button id="btnSoundToggle" class="btn btn-secondary btn-sm" style="flex:1;" onclick="toggleSound()">🔊 Sonido: ON</button>
-        </div>
-        <label for="drawPrizeSelect">Premio a sortear ahora</label>
-        <select id="drawPrizeSelect" onchange="updateLiveStageHeader()"></select>
-        <div id="drawPoolInfo" class="hint" style="margin-top:0;">Tickets activos: 0</div>
-      </div>
-      <div id="liveStage" class="live-stage">
-        <div id="simRibbon" class="sim-ribbon hidden">🧪 MODO SIMULACRO (ENSAYO) — NO GUARDA GANADORES NI ALTERA DATOS</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
-          <span class="live-badge" id="liveContestBadge">CONCURSO</span>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-secondary btn-sm hidden" id="liveSoundMini" onclick="toggleSound()">🔊</button>
-            <button class="btn btn-secondary btn-sm hidden" id="exitLiveBtn" onclick="toggleLiveFullscreen()">Salir Live</button>
-          </div>
-        </div>
-        <div class="live-prize-name" id="livePrizeName">Agrega un premio para sortear</div>
-        <div class="roulette-box">
-          <div class="roulette-code" id="rouletteCode">CN-??????</div>
-          <div class="roulette-winner" id="rouletteWinner">Listo para girar</div>
-          <div class="roulette-rut" id="rouletteRut"></div>
-        </div>
-        <button class="btn btn-gold" id="btnStartDraw" onclick="startLiveDraw()">🎲 SORTEAR GANADOR</button>
-      </div>
-      <div class="card hide-in-live">
-        <div class="card-title">
-          <span>🏅 Ganadores registrados</span>
-          <button class="btn btn-danger btn-sm hidden" id="btnUndoLastWinner" onclick="undoLastWinner()">↩️ Anular último</button>
-        </div>
-        <div id="winnersList"></div>
-      </div>
-    </section>
-
-    <section id="tab-settings" class="tab-panel">
-      <div class="card">
-        <div class="card-title"><span>🔍 Verificar ticket o escanear QR</span><button class="btn btn-info btn-sm" onclick="openQrScanner()">📷 Escanear QR</button></div>
-        <div class="row">
-          <input id="verifyInput" type="text" placeholder="Código CN-... o ID S-..." style="margin-bottom:0;text-transform:uppercase;" />
-          <button class="btn btn-primary btn-sm" onclick="verifyCode()">Verificar</button>
-        </div>
-        <div id="verifyResult" style="margin-top:10px;font-size:13px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>🎨 Diseño del ticket PNG</span><button class="btn btn-secondary btn-sm" onclick="previewSampleTicket()">👁️ Vista previa</button></div>
-        <label>Tema de color</label><div class="theme-grid" id="themePicker"></div>
-        <label for="logoFileInput">Logo o foto del premio (opcional)</label>
-        <div id="logoPreviewWrap" class="logo-preview-wrap hidden">
-          <img id="logoPreviewThumb" alt="Logo" /><div style="flex:1;font-size:12px;color:var(--muted);" id="logoSizeInfo">Logo cargado</div>
-          <button class="btn btn-danger btn-sm" onclick="removeContestLogo()">Quitar</button>
-        </div>
-        <input id="logoFileInput" type="file" accept="image/*" onchange="handleLogoUpload(event)" />
-      </div>
-      <div class="card">
-        <div class="card-title">💾 Respaldo y Cuadratura</div>
-        <div class="row" style="margin-bottom:8px;">
-          <button class="btn btn-gold" onclick="exportContestJson()">📦 Respaldo JSON</button>
-          <button class="btn btn-secondary" onclick="exportContestCsv()">📊 Excel (CSV)</button>
-        </div>
-        <label for="importJsonFile" style="margin-top:10px;">Restaurar concurso desde archivo JSON</label>
-        <input id="importJsonFile" type="file" accept=".json,application/json" onchange="importContestJson(event)" />
-      </div>
-      <div class="card">
-        <div class="card-title">🎯 Concursos</div>
-        <label for="contestSelector">Concurso activo</label>
-        <select id="contestSelector" onchange="switchContest(this.value)"></select>
-        <details style="margin-top:8px;">
-          <summary style="cursor:pointer;font-weight:700;color:var(--primary);font-size:14px;margin-bottom:10px;">➕ Crear nuevo concurso</summary>
-          <label>Nombre del concurso</label><input id="newContestName" type="text" placeholder="Ej: Gran Concurso Diciembre" />
-          <label>Fecha del sorteo</label><input id="newContestDate" type="text" placeholder="Ej: 20 de Diciembre - 21:00 hrs" />
-          <label>Tu Instagram o WhatsApp</label><input id="newContestContact" type="text" placeholder="Ej: @tuinstagram / +569..." />
-          <label>Packs fijos</label>
-          <div class="row"><input id="p1Qty" type="number" value="1" /><input id="p1Price" type="number" value="2000" /></div>
-          <div class="row"><input id="p2Qty" type="number" value="3" /><input id="p2Price" type="number" value="5000" /></div>
-          <div class="row"><input id="p3Qty" type="number" value="8" /><input id="p3Price" type="number" value="10000" /></div>
-          <button class="btn btn-primary" onclick="createNewContest()">Crear concurso</button>
-        </details>
-      </div>
-      <div class="card">
-        <div class="card-title">⚙️ Datos del concurso actual</div>
-        <label>Nombre</label><input id="editContestName" type="text" />
-        <label>Fecha del sorteo</label><input id="editContestDate" type="text" />
-        <label>Contacto / Red social en el ticket</label><input id="editContestContact" type="text" />
-        <button class="btn btn-secondary" onclick="saveCurrentContestMeta()">Guardar cambios</button>
-      </div>
-    </section>
-  </main>
-
-  <div id="ticketModal" class="modal-backdrop">
-    <div class="modal">
-      <div class="card-title"><span id="ticketModalTitle">🎟️ Ticket listo para enviar</span><button class="btn btn-secondary btn-sm" onclick="closeTicketModal()">✕</button></div>
-      <div id="ticketModalSummary" class="modal-pill hidden"></div>
-      <img id="ticketPreviewImg" class="ticket-preview" alt="Comprobante" />
-      <div id="ticketModalActions" style="display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-primary" onclick="shareCurrentTicket()">📤 Enviar imagen por WhatsApp</button>
-        <div class="row">
-          <button class="btn btn-secondary" onclick="openWhatsAppChat()">💬 Abrir chat WA</button>
-          <button class="btn btn-secondary" onclick="downloadCurrentTicket()">💾 Guardar PNG</button>
-        </div>
-      </div>
-    </div>
+  <div class="card">
+    <h1 id="tituloConcurso">Gran Concurso Oficial</h1>
+    <div id="resumen">Ventas: 0 · Tickets: 0 · Recaudado: $0</div>
   </div>
 
-  <div id="qrScannerModal" class="modal-backdrop">
-    <div class="modal">
-      <div class="card-title"><span>📷 Escáner QR de Tickets</span><button class="btn btn-secondary btn-sm" onclick="closeQrScanner()">✕</button></div>
-      <video id="qrVideo" class="scanner-video" autoplay playsinline muted></video>
-      <div id="qrScannerStatus" class="hint" style="margin-top:0;text-align:center;">Apunta la cámara al QR del comprobante...</div>
-      <button class="btn btn-secondary" onclick="closeQrScanner()">Cerrar escáner</button>
-    </div>
+  <div class="card">
+    <strong>Nueva Venta</strong>
+    <div class="packs" id="listaPacks"></div>
+    <input id="nombre" placeholder="Nombre completo" />
+    <input id="rut" placeholder="RUT (ej: 18.456.789-2)" />
+    <input id="fono" placeholder="WhatsApp (+569...)" />
+    <button class="main" onclick="registrarVenta()">Confirmar pago y generar ticket</button>
+    <div id="ventasBox"></div>
   </div>
 
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="sell" onclick="switchTab('sell')"><span class="ico">🎟️</span>Vender</button>
-    <button class="nav-btn" data-tab="prizes" onclick="switchTab('prizes')"><span class="ico">🎁</span>Premios</button>
-    <button class="nav-btn" data-tab="draw" onclick="switchTab('draw')"><span class="ico">🎲</span>Sorteo</button>
-    <button class="nav-btn" data-tab="settings" onclick="switchTab('settings')"><span class="ico">⚙️</span>Ajustes</button>
-  </nav>
-  <script src="app.js"></script>
+  <div class="card">
+    <strong>Premios y Sorteo</strong>
+    <input id="premioInput" placeholder="Nombre del premio (ej: Giftcard $50.000)" />
+    <button class="main gold" onclick="agregarPremio()">Agregar premio</button>
+    <div id="premiosBox"></div>
+    <button class="main gold" onclick="sortear()">Sortear ganador ahora</button>
+    <div id="ganadorBox" class="item">Sin ganador aún</div>
+  </div>
+
+  <script>
+    const KEY = 'concursopro_fast_v1';
+    const PACKS = [
+      { qty: 1, price: 2000 },
+      { qty: 3, price: 5000 },
+      { qty: 8, price: 10000 }
+    ];
+    let selectedPack = 2;
+    let state = { sales: [], tickets: [], prizes: [], winner: null };
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (saved && Array.isArray(saved.tickets)) state = saved;
+    } catch (_) {}
+
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {}
+      render();
+    }
+
+    function makeCode(n) {
+      return 'CN-' + String(n).padStart(4, '0') + Math.random().toString(36).slice(2, 4).toUpperCase();
+    }
+
+    function registrarVenta() {
+      const name = document.getElementById('nombre').value.trim();
+      const rut = document.getElementById('rut').value.trim();
+      const fono = document.getElementById('fono').value.trim();
+      if (!name || !rut) return alert('Completa nombre y RUT.');
+      const pack = PACKS[selectedPack];
+      const codes = [];
+      for (let i = 0; i < pack.qty; i++) {
+        const code = makeCode(state.tickets.length + 1);
+        codes.push(code);
+        state.tickets.push({ code, name, rut, fono });
+      }
+      state.sales.unshift({ name, rut, fono, qty: pack.qty, amount: pack.price, codes });
+      document.getElementById('nombre').value = '';
+      document.getElementById('rut').value = '';
+      document.getElementById('fono').value = '';
+      save();
+      alert('Tickets generados: ' + codes.join(', '));
+    }
+
+    function agregarPremio() {
+      const p = document.getElementById('premioInput').value.trim();
+      if (!p) return alert('Escribe un premio.');
+      state.prizes.push(p);
+      document.getElementById('premioInput').value = '';
+      save();
+    }
+
+    function sortear() {
+      if (!state.tickets.length) return alert('No hay tickets vendidos todavía.');
+      if (!state.prizes.length) return alert('Agrega al menos un premio primero.');
+      const idx = Math.floor(Math.random() * state.tickets.length);
+      const win = state.tickets[idx];
+      const premio = state.prizes[state.prizes.length - 1];
+      state.winner = { premio, ...win };
+      save();
+    }
+
+    function render() {
+      const totalMoney = state.sales.reduce((acc, s) => acc + s.amount, 0);
+      document.getElementById('resumen').textContent =
+        `Ventas: ${state.sales.length} · Tickets: ${state.tickets.length} · Recaudado: $${totalMoney.toLocaleString('es-CL')}`;
+
+      document.getElementById('listaPacks').innerHTML = PACKS.map((p, i) =>
+        `<button type="button" class="pack ${i === selectedPack ? 'active' : ''}" onclick="selectedPack=${i};render();">x${p.qty}<br>$${p.price.toLocaleString('es-CL')}</button>`
+      ).join('');
+
+      document.getElementById('ventasBox').innerHTML = state.sales.slice(0, 10).map(s =>
+        `<div class="item"><strong>${s.name}</strong> (${s.rut}) · x${s.qty} ($${s.amount.toLocaleString('es-CL')})<br>Códigos: ${s.codes.join(', ')}</div>`
+      ).join('');
+
+      document.getElementById('premiosBox').innerHTML = state.prizes.map((p, i) =>
+        `<div class="item">${i + 1}. ${p}</div>`
+      ).join('');
+
+      document.getElementById('ganadorBox').innerHTML = state.winner
+        ? `<strong>Ganador:</strong> ${state.winner.name} (${state.winner.rut})<br><strong>Código:</strong> ${state.winner.code} · <strong>Premio:</strong> ${state.winner.premio}`
+        : 'Sin ganador aún';
+    }
+
+    render();
+  </script>
 </body>
 </html>
