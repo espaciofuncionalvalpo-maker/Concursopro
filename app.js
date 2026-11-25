@@ -190,7 +190,7 @@ function playWinFanfare() {
 }
 
 const DB_NAME = 'ConcursoProDB', STORE_NAME = 'contests', LS_KEY = 'concursopro_fallback_v1';
-let db = null, contests = [], activeContestId = null, selectedPackIndex = 2;
+let db = null, contests = [], activeContestId = null, selectedPackIndex = 2, packCount = 1;
 let currentModalSale = null, currentTicketBlob = null, isDrawing = false, isSimMode = false;
 let qrStream = null, qrScanTimer = null;
 try { activeContestId = localStorage.getItem('concursopro_active_id') || null; } catch {}
@@ -360,8 +360,25 @@ function renderPacks(c) {
       <span class="pack-qty">x${p.qty}</span><span class="pack-price">${formatCLP(p.price)}</span>
       <span class="pack-unit">${formatCLP(unit)} c/u</span></button>`;
   }).join('');
+  updatePackCountUI();
 }
-function selectPack(idx) { selectedPackIndex = idx; renderPacks(getActiveContest()); }
+function selectPack(idx) { selectedPackIndex = idx; renderPacks(getActiveContest()); updatePackCountUI(); }
+function changePackCount(delta) { setPackCount(packCount + delta); }
+function setPackCount(val) {
+  const n = parseInt(val, 10);
+  packCount = Math.min(50, Math.max(1, isNaN(n) ? 1 : n));
+  updatePackCountUI();
+}
+function updatePackCountUI() {
+  const c = getActiveContest(); if (!c) return;
+  const pack = c.packs[selectedPackIndex]; if (!pack) return;
+  const input = document.getElementById('packCountInput');
+  if (input && String(input.value) !== String(packCount)) input.value = packCount;
+  const sum = document.getElementById('packCountSummary');
+  if (sum) sum.innerHTML = `${packCount} × pack x${pack.qty} = <strong>${pack.qty * packCount} ${pack.qty * packCount === 1 ? 'ticket' : 'tickets'}</strong> · Total <strong>${formatCLP(pack.price * packCount)}</strong>`;
+  const btn = document.getElementById('btnCreateSale');
+  if (btn) btn.textContent = `🎟️ Confirmar ${formatCLP(pack.price * packCount)} y generar ${pack.qty * packCount === 1 ? 'ticket' : 'tickets'}`;
+}
 
 function onRutInput() {
   const val = document.getElementById('buyerRut').value.trim();
@@ -425,32 +442,33 @@ function applyQuickPaste() {
 async function createSale() {
   const c = getActiveContest(), name = document.getElementById('buyerName').value.trim();
   const rawRut = document.getElementById('buyerRut').value.trim(), phone = document.getElementById('buyerPhone').value.trim();
-  const pack = c.packs[selectedPackIndex];
+  const pack = c.packs[selectedPackIndex], mult = packCount;
+  const totalQty = pack.qty * mult, totalAmount = pack.price * mult;
   if (!name) return showToast('Ingresa el nombre del comprador');
   if (!rawRut) return showToast('Ingresa el RUT del comprador');
 
   const cleaned = cleanRut(rawRut), fiveMinAgo = Date.now() - 5 * 60 * 1000;
-  const recentDup = c.sales.find((s) => cleanRut(s.buyerRut) === cleaned && Number(s.amount) === Number(pack.price) && new Date(s.createdAt).getTime() >= fiveMinAgo);
+  const recentDup = c.sales.find((s) => cleanRut(s.buyerRut) === cleaned && Number(s.amount) === Number(totalAmount) && new Date(s.createdAt).getTime() >= fiveMinAgo);
   if (recentDup) {
     const mins = Math.max(1, Math.round((Date.now() - new Date(recentDup.createdAt).getTime()) / 60000));
-    if (!confirm(`⚠️ POSIBLE VENTA DUPLICADA\n\n${recentDup.buyerName} (${recentDup.buyerRut}) ya registró un pack de ${formatCLP(pack.price)} hace menos de ${mins} min.\n\n¿Confirmas que recibiste una SEGUNDA transferencia real?`)) return;
+    if (!confirm(`⚠️ POSIBLE VENTA DUPLICADA\n\n${recentDup.buyerName} (${recentDup.buyerRut}) ya registró una compra de ${formatCLP(totalAmount)} hace menos de ${mins} min.\n\n¿Confirmas que recibiste una SEGUNDA transferencia real?`)) return;
   }
 
   const rutFormatted = cleaned.length >= 7 ? formatRut(rawRut) : rawRut;
   const existingCodes = new Set(c.tickets.map((t) => t.code)), newCodes = [];
   const saleId = 'S-' + Date.now().toString(36).toUpperCase();
-  for (let i = 0; i < pack.qty; i++) {
+  for (let i = 0; i < totalQty; i++) {
     const code = generateUniqueCode(existingCodes);
     newCodes.push(code);
     c.tickets.push({ code, saleId, buyerName: name, buyerRut: rutFormatted, buyerPhone: normalizePhone(phone), wonPrizeId: null });
   }
-  const sale = { id: saleId, buyerName: name, buyerRut: rutFormatted, buyerPhone: normalizePhone(phone), qty: pack.qty, amount: pack.price, codes: newCodes, createdAt: new Date().toISOString() };
+  const sale = { id: saleId, buyerName: name, buyerRut: rutFormatted, buyerPhone: normalizePhone(phone), qty: totalQty, amount: totalAmount, packCount: mult, packQty: pack.qty, codes: newCodes, createdAt: new Date().toISOString() };
   c.sales.unshift(sale); c.unsavedChanges = (c.unsavedChanges || 0) + 1;
   await saveContest(c);
 
   document.getElementById('buyerName').value = ''; document.getElementById('buyerRut').value = '';
   document.getElementById('buyerPhone').value = ''; document.getElementById('quickPasteBox').value = '';
-  onRutInput(); renderAll(); openTicketModal(sale, false);
+  setPackCount(1); onRutInput(); renderAll(); openTicketModal(sale, false);
 }
 
 function renderSalesList() {
@@ -465,7 +483,7 @@ function renderSalesList() {
     return `<div class="list-item" style="flex-direction:column;align-items:stretch;">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
         <div class="item-main"><div class="item-title">${escapeHtml(s.buyerName)} · ${formatCLP(s.amount)}</div>
-        <div class="item-sub">${escapeHtml(s.buyerRut)} · Pack x${s.qty} (Acum: ${total}) · ${dateStr}</div></div>
+        <div class="item-sub">${escapeHtml(s.buyerRut)} · ${s.packCount > 1 ? s.packCount + ' packs · ' : 'Pack '}x${s.qty} (Acum: ${total}) · ${dateStr}</div></div>
         <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="openTicketById('${s.id}')">🎟️</button>
         <button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">🗑️</button></div>
       </div>
@@ -517,10 +535,10 @@ async function renderTicketToBlob(contest, sale) {
   ctx.fillStyle = th.textMain; ctx.font = '900 52px system-ui, Roboto, sans-serif';
   ctx.fillText(contest.name.slice(0, 28), W / 2, y + 68);
 
-  const pillText = `PACK x${sale.qty} ${sale.qty === 1 ? 'TICKET' : 'TICKETS'} · ${formatCLP(sale.amount)}`;
-  drawRoundRect(ctx, W / 2 - 270, y + 102, 540, 62, 31); ctx.fillStyle = th.pillBg; ctx.fill();
+  const pillText = (sale.packCount > 1 ? `${sale.packCount} PACKS · ` : 'PACK ') + `x${sale.qty} ${sale.qty === 1 ? 'TICKET' : 'TICKETS'} · ${formatCLP(sale.amount)}`;
+  drawRoundRect(ctx, W / 2 - 300, y + 102, 600, 62, 31); ctx.fillStyle = th.pillBg; ctx.fill();
   ctx.lineWidth = 2; ctx.strokeStyle = th.pillBorder; ctx.stroke();
-  ctx.fillStyle = th.pillText; ctx.font = '800 29px system-ui, Roboto, sans-serif'; ctx.fillText(pillText, W / 2, y + 143);
+  ctx.fillStyle = th.pillText; ctx.font = `800 ${pillText.length > 30 ? 25 : 29}px system-ui, Roboto, sans-serif`; ctx.fillText(pillText, W / 2, y + 143);
 
   const infoY = y + 196;
   drawRoundRect(ctx, 90, infoY, W - 180, 174, 22); ctx.fillStyle = th.inner; ctx.fill();
@@ -836,7 +854,7 @@ function verifyCode(overrideVal) {
     box.innerHTML = `<div style="background:var(--bg);border:1px solid var(--primary);padding:11px;border-radius:10px;">
       <div style="color:var(--primary);font-weight:800;">✅ COMPROBANTE VÁLIDO (${escapeHtml(sale.id)})</div>
       <div>Titular: <strong>${escapeHtml(sale.buyerName)}</strong> (${escapeHtml(sale.buyerRut)})</div>
-      <div>Pack x${sale.qty} (${formatCLP(sale.amount)}) · Total cliente: <strong>${total} tickets</strong></div>
+      <div>${sale.packCount > 1 ? sale.packCount + ' packs · ' : 'Pack '}x${sale.qty} (${formatCLP(sale.amount)}) · Total cliente: <strong>${total} tickets</strong></div>
       <div class="code-chips">${saleTickets.map((t) => { const wp = t.wonPrizeId ? c.prizes.find((p) => p.id === t.wonPrizeId) : null; return `<span class="chip ${wp ? 'winner' : ''}">${escapeHtml(t.code)}${wp ? ' 🏆' : ''}</span>`; }).join('')}</div></div>`;
     return;
   }

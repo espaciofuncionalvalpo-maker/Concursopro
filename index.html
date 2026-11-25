@@ -71,6 +71,8 @@
     .pack-price { color: var(--primary); font-weight: 800; }
     .pack-unit { font-size: 10px; color: var(--muted); }
 
+    .stepper { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; }
+    .stepper input { text-align: center; font-size: 18px; font-weight: 800; }
     .returning { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.4); border-radius: 10px; padding: 8px 10px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
     .badge-count { font-size: 12px; color: var(--muted); font-weight: 700; }
 
@@ -158,6 +160,14 @@
         <label>Elige el pack</label>
         <div class="packs" id="packsContainer"></div>
 
+        <label for="packCountInput">¿Cuántos packs compra?</label>
+        <div class="stepper">
+          <button type="button" class="btn btn-secondary" onclick="changePackCount(-1)">−</button>
+          <input id="packCountInput" type="number" min="1" max="50" value="1" inputmode="numeric" oninput="setPackCount(this.value)" />
+          <button type="button" class="btn btn-secondary" onclick="changePackCount(1)">+</button>
+        </div>
+        <div class="hint" id="packCountSummary"></div>
+
         <label for="buyerName">Nombre completo</label>
         <input id="buyerName" placeholder="Ej: Camila Rojas" autocomplete="off" />
 
@@ -174,7 +184,7 @@
         <div class="hint" id="rutHint">Verifica el abono real en tu banco antes de emitir.</div>
         <div class="returning hidden" id="returningCustomerBox"></div>
 
-        <button class="btn btn-primary btn-block" onclick="createSale()">🎟️ Confirmar pago y generar ticket</button>
+        <button class="btn btn-primary btn-block" id="btnCreateSale" onclick="createSale()">🎟️ Confirmar pago y generar ticket</button>
       </div>
 
       <div class="card">
@@ -354,6 +364,6 @@
   <div id="toast"></div>
   <canvas id="confettiCanvas"></canvas>
 
-  <script src="./app.js?v=5"></script>
+  <script src="./app.js?v=6"></script>
 </body>
 </html>
