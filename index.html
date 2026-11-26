@@ -173,7 +173,7 @@
 
         <div class="row2">
           <div>
-            <label for="buyerRut">RUT</label>
+            <label for="buyerRut">RUT (opcional)</label>
             <input id="buyerRut" placeholder="18.456.789-2" oninput="onRutInput()" autocomplete="off" />
           </div>
           <div>
@@ -181,7 +181,7 @@
             <input id="buyerPhone" placeholder="+56912345678" inputmode="tel" autocomplete="off" />
           </div>
         </div>
-        <div class="hint" id="rutHint">Verifica el abono real en tu banco antes de emitir.</div>
+        <div class="hint" id="rutHint">RUT opcional. Sin RUT, el cliente se reconoce por su WhatsApp. Verifica el abono en tu banco antes de emitir.</div>
         <div class="returning hidden" id="returningCustomerBox"></div>
 
         <button class="btn btn-primary btn-block" id="btnCreateSale" onclick="createSale()">🎟️ Confirmar pago y generar ticket</button>
@@ -364,6 +364,6 @@
   <div id="toast"></div>
   <canvas id="confettiCanvas"></canvas>
 
-  <script src="./app.js?v=6"></script>
+  <script src="./app.js?v=7"></script>
 </body>
 </html>

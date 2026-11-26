@@ -299,13 +299,23 @@ function normalizePhone(val) {
   if (digits.length === 9 && digits.startsWith('9')) digits = '56' + digits;
   return digits;
 }
-function getCustomerStats(contest, rut) {
-  const target = cleanRut(rut);
+// Identifica al cliente: por RUT si lo dio; si no, por WhatsApp; si no, por nombre
+function customerKey(p) {
+  if (!p) return '';
+  if (typeof p === 'string') { const r = cleanRut(p); return r ? 'R:' + r : ''; }
+  const r = cleanRut(p.buyerRut); if (r) return 'R:' + r;
+  const ph = normalizePhone(p.buyerPhone); if (ph.length >= 8) return 'P:' + ph;
+  const n = String(p.buyerName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return n ? 'N:' + n : '';
+}
+function getCustomerStats(contest, person) {
+  const target = customerKey(person);
   if (!target) return { totalTickets: 0, lastSale: null };
-  const matchingSales = contest.sales.filter((s) => cleanRut(s.buyerRut) === target);
-  const totalTickets = contest.tickets.filter((t) => cleanRut(t.buyerRut) === target).length;
+  const matchingSales = contest.sales.filter((s) => customerKey(s) === target);
+  const totalTickets = contest.tickets.filter((t) => customerKey(t) === target).length;
   return { totalTickets, lastSale: matchingSales[0] || null };
 }
+const rutOrDash = (rut) => (cleanRut(rut) ? rut : 'Sin RUT');
 
 const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 function generateUniqueCode(existingSet) {
@@ -384,7 +394,7 @@ function onRutInput() {
   const val = document.getElementById('buyerRut').value.trim();
   const hint = document.getElementById('rutHint'), retBox = document.getElementById('returningCustomerBox');
   const c = getActiveContest();
-  if (!val) { hint.className = 'hint'; hint.textContent = 'Verifica el abono real en tu banco antes de emitir.'; retBox.classList.add('hidden'); return; }
+  if (!val) { hint.className = 'hint'; hint.textContent = 'RUT opcional. Sin RUT, el cliente se reconoce por su WhatsApp. Verifica el abono en tu banco antes de emitir.'; retBox.classList.add('hidden'); return; }
   if (validateRut(val)) { hint.className = 'hint ok'; hint.textContent = '✓ RUT válido (' + formatRut(val) + ')'; }
   else { hint.className = 'hint warn'; hint.textContent = '⚠️ Revisa el dígito verificador del RUT (igual puedes emitir si es pasaporte).'; }
 
@@ -445,13 +455,13 @@ async function createSale() {
   const pack = c.packs[selectedPackIndex], mult = packCount;
   const totalQty = pack.qty * mult, totalAmount = pack.price * mult;
   if (!name) return showToast('Ingresa el nombre del comprador');
-  if (!rawRut) return showToast('Ingresa el RUT del comprador');
 
   const cleaned = cleanRut(rawRut), fiveMinAgo = Date.now() - 5 * 60 * 1000;
-  const recentDup = c.sales.find((s) => cleanRut(s.buyerRut) === cleaned && Number(s.amount) === Number(totalAmount) && new Date(s.createdAt).getTime() >= fiveMinAgo);
+  const buyerKey = customerKey({ buyerRut: rawRut, buyerPhone: phone, buyerName: name });
+  const recentDup = c.sales.find((s) => customerKey(s) === buyerKey && Number(s.amount) === Number(totalAmount) && new Date(s.createdAt).getTime() >= fiveMinAgo);
   if (recentDup) {
     const mins = Math.max(1, Math.round((Date.now() - new Date(recentDup.createdAt).getTime()) / 60000));
-    if (!confirm(`⚠️ POSIBLE VENTA DUPLICADA\n\n${recentDup.buyerName} (${recentDup.buyerRut}) ya registró una compra de ${formatCLP(totalAmount)} hace menos de ${mins} min.\n\n¿Confirmas que recibiste una SEGUNDA transferencia real?`)) return;
+    if (!confirm(`⚠️ POSIBLE VENTA DUPLICADA\n\n${recentDup.buyerName} (${rutOrDash(recentDup.buyerRut)}) ya registró una compra de ${formatCLP(totalAmount)} hace menos de ${mins} min.\n\n¿Confirmas que recibiste una SEGUNDA transferencia real?`)) return;
   }
 
   const rutFormatted = cleaned.length >= 7 ? formatRut(rawRut) : rawRut;
@@ -473,17 +483,17 @@ async function createSale() {
 
 function renderSalesList() {
   const c = getActiveContest(), q = (document.getElementById('salesSearch').value || '').trim().toLowerCase();
-  const filtered = c.sales.filter((s) => !q || s.buyerName.toLowerCase().includes(q) || s.buyerRut.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.codes.some((cd) => cd.toLowerCase().includes(q)));
+  const filtered = c.sales.filter((s) => !q || s.buyerName.toLowerCase().includes(q) || String(s.buyerRut || '').toLowerCase().includes(q) || String(s.buyerPhone || '').includes(q) || s.id.toLowerCase().includes(q) || s.codes.some((cd) => cd.toLowerCase().includes(q)));
   document.getElementById('salesCountBadge').textContent = `${filtered.length} ventas`;
   const container = document.getElementById('salesList');
   if (!filtered.length) { container.innerHTML = '<div class="hint" style="margin:6px 0 0;">Aún no hay ventas registradas.</div>'; return; }
   container.innerHTML = filtered.slice(0, 40).map((s) => {
     const dateStr = new Date(s.createdAt).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
-    const total = getCustomerStats(c, s.buyerRut).totalTickets;
+    const total = getCustomerStats(c, s).totalTickets;
     return `<div class="list-item" style="flex-direction:column;align-items:stretch;">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
         <div class="item-main"><div class="item-title">${escapeHtml(s.buyerName)} · ${formatCLP(s.amount)}</div>
-        <div class="item-sub">${escapeHtml(s.buyerRut)} · ${s.packCount > 1 ? s.packCount + ' packs · ' : 'Pack '}x${s.qty} (Acum: ${total}) · ${dateStr}</div></div>
+        <div class="item-sub">${escapeHtml(rutOrDash(s.buyerRut))} · ${s.packCount > 1 ? s.packCount + ' packs · ' : 'Pack '}x${s.qty} (Acum: ${total}) · ${dateStr}</div></div>
         <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="openTicketById('${s.id}')">🎟️</button>
         <button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">🗑️</button></div>
       </div>
@@ -547,7 +557,7 @@ async function renderTicketToBlob(contest, sale) {
   ctx.fillStyle = th.textMain; ctx.font = '800 39px system-ui, Roboto, sans-serif';
   ctx.fillText(sale.buyerName.slice(0, 30), 130, infoY + 98);
   ctx.fillStyle = th.textMuted; ctx.font = '600 25px system-ui, Roboto, sans-serif';
-  ctx.fillText(`RUT: ${maskRut(sale.buyerRut)}   •   Emitido: ${new Date(sale.createdAt).toLocaleDateString('es-CL')}`, 130, infoY + 144);
+  ctx.fillText(`${cleanRut(sale.buyerRut) ? 'RUT: ' + maskRut(sale.buyerRut) + '   •   ' : ''}Emitido: ${new Date(sale.createdAt).toLocaleDateString('es-CL')}`, 130, infoY + 144);
 
   const divY = infoY + 214;
   ctx.strokeStyle = th.divider; ctx.lineWidth = 3; ctx.setLineDash([16, 14]);
@@ -605,7 +615,7 @@ async function openTicketModal(sale, isSample) {
   document.getElementById('ticketModalActions').classList.toggle('hidden', isSample);
   const sumEl = document.getElementById('ticketModalSummary');
   if (!isSample) {
-    const total = getCustomerStats(c, sale.buyerRut).totalTickets;
+    const total = getCustomerStats(c, sale).totalTickets;
     sumEl.classList.remove('hidden');
     sumEl.textContent = total > sale.qty ? `🔥 ¡Cliente recurrente! Acumula ${total} tickets en total.` : `✅ Emitido: ${sale.qty} ${sale.qty === 1 ? 'ticket' : 'tickets'} · QR incluido.`;
   } else sumEl.classList.add('hidden');
@@ -614,7 +624,7 @@ async function openTicketModal(sale, isSample) {
 function closeTicketModal() { document.getElementById('ticketModal').classList.remove('open'); }
 
 function buildWhatsAppText(contest, sale) {
-  const total = getCustomerStats(contest, sale.buyerRut).totalTickets;
+  const total = getCustomerStats(contest, sale).totalTickets;
   const accumLine = total > sale.qty ? `\n🔥 ¡Ya acumulas *${total} códigos en total* participando por los premios!` : '';
   return `¡Gracias por participar en *${contest.name}*, ${sale.buyerName}! ✅\nAquí tienes tu comprobante con ${sale.qty} ${sale.qty === 1 ? 'código' : 'códigos'}.${accumLine}\n¡Mucho éxito en el sorteo! 🍀`;
 }
@@ -718,7 +728,7 @@ function renderDrawTab(c) {
   document.getElementById('btnUndoLastWinner').classList.toggle('hidden', !winners.length || isSimMode);
   document.getElementById('winnersList').innerHTML = winners.length ? winners.map((p) => `<div class="list-item"><div class="item-main">
     <div class="item-title">${p.isMajor ? '⭐ ' : ''}🏆 ${escapeHtml(p.name)}</div>
-    <div class="item-sub">${escapeHtml(p.winner.buyerName)} (${maskRut(p.winner.buyerRut)})</div>
+    <div class="item-sub">${escapeHtml(p.winner.buyerName)} ${cleanRut(p.winner.buyerRut) ? '(' + maskRut(p.winner.buyerRut) + ')' : ''}</div>
     <div class="code-chips"><span class="chip winner">${escapeHtml(p.winner.code)}</span></div>
   </div>${p.winner.buyerPhone ? `<button class="btn btn-primary btn-sm" onclick="contactWinner('${p.id}')">💬 WA</button>` : ''}</div>`).join('') : '<div class="hint" style="margin:0;">Todavía no se ha sorteado ningún premio.</div>';
 }
@@ -791,7 +801,7 @@ async function finalizeWinner(c, prize, ticket) {
   }
   document.getElementById('rouletteCode').textContent = ticket.code;
   document.getElementById('rouletteWinner').textContent = (isSimMode ? '🧪 ' : '🎉 ') + ticket.buyerName;
-  document.getElementById('rouletteRut').textContent = isSimMode ? 'SIMULACRO — No guardado en el concurso' : 'RUT: ' + maskRut(ticket.buyerRut);
+  document.getElementById('rouletteRut').textContent = isSimMode ? 'SIMULACRO — No guardado en el concurso' : (cleanRut(ticket.buyerRut) ? 'RUT: ' + maskRut(ticket.buyerRut) : '');
   playWinFanfare(); launchConfetti();
   isDrawing = false;
   const btn = document.getElementById('btnStartDraw'); btn.disabled = false;
@@ -850,20 +860,20 @@ function verifyCode(overrideVal) {
 
   const saleKey = raw.startsWith('CP:') ? raw.slice(3) : raw, sale = c.sales.find((s) => s.id.toUpperCase() === saleKey);
   if (sale) {
-    const total = getCustomerStats(c, sale.buyerRut).totalTickets, saleTickets = c.tickets.filter((t) => t.saleId === sale.id);
+    const total = getCustomerStats(c, sale).totalTickets, saleTickets = c.tickets.filter((t) => t.saleId === sale.id);
     box.innerHTML = `<div style="background:var(--bg);border:1px solid var(--primary);padding:11px;border-radius:10px;">
       <div style="color:var(--primary);font-weight:800;">✅ COMPROBANTE VÁLIDO (${escapeHtml(sale.id)})</div>
-      <div>Titular: <strong>${escapeHtml(sale.buyerName)}</strong> (${escapeHtml(sale.buyerRut)})</div>
+      <div>Titular: <strong>${escapeHtml(sale.buyerName)}</strong> (${escapeHtml(rutOrDash(sale.buyerRut))})</div>
       <div>${sale.packCount > 1 ? sale.packCount + ' packs · ' : 'Pack '}x${sale.qty} (${formatCLP(sale.amount)}) · Total cliente: <strong>${total} tickets</strong></div>
       <div class="code-chips">${saleTickets.map((t) => { const wp = t.wonPrizeId ? c.prizes.find((p) => p.id === t.wonPrizeId) : null; return `<span class="chip ${wp ? 'winner' : ''}">${escapeHtml(t.code)}${wp ? ' 🏆' : ''}</span>`; }).join('')}</div></div>`;
     return;
   }
   const t = c.tickets.find((x) => x.code.toUpperCase() === raw);
   if (!t) { box.innerHTML = `<span style="color:#fca5a5;font-weight:700;">❌ "${escapeHtml(raw)}" no existe en este concurso.</span>`; return; }
-  const wonPrize = t.wonPrizeId ? c.prizes.find((p) => p.id === t.wonPrizeId) : null, total = getCustomerStats(c, t.buyerRut).totalTickets;
+  const wonPrize = t.wonPrizeId ? c.prizes.find((p) => p.id === t.wonPrizeId) : null, total = getCustomerStats(c, t).totalTickets;
   box.innerHTML = `<div style="background:var(--bg);border:1px solid var(--primary);padding:11px;border-radius:10px;">
     <div style="color:var(--primary);font-weight:800;">✅ CÓDIGO VÁLIDO: ${escapeHtml(t.code)}</div>
-    <div>Titular: <strong>${escapeHtml(t.buyerName)}</strong> (${escapeHtml(t.buyerRut)})</div>
+    <div>Titular: <strong>${escapeHtml(t.buyerName)}</strong> (${escapeHtml(rutOrDash(t.buyerRut))})</div>
     <div>Total acumulado: <strong>${total} ${total === 1 ? 'ticket' : 'tickets'}</strong></div>
     <div>Estado: ${wonPrize ? `🏆 Ya ganó "${escapeHtml(wonPrize.name)}"` : '🟢 Activo participando'}</div></div>`;
 }

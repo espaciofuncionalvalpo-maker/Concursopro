@@ -1,5 +1,5 @@
 // Sube este número cada vez que cambies index.html o app.js
-const CACHE_NAME = 'concursopro-v6';
+const CACHE_NAME = 'concursopro-v7';
 const ASSETS = ['./', './index.html', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
