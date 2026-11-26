@@ -200,7 +200,8 @@ function openDB() {
     if (!window.indexedDB) return resolve(null);
     let done = false;
     const finish = (val) => { if (!done) { done = true; resolve(val); } };
-    setTimeout(() => finish(null), 1500);
+    // Antes eran 1,5 s y la app caía a un almacenamiento vacío: ahora espera hasta 10 s
+    setTimeout(() => finish(null), 10000);
     try {
       const req = indexedDB.open(DB_NAME, 1);
       req.onupgradeneeded = (e) => {
@@ -209,36 +210,96 @@ function openDB() {
       };
       req.onsuccess = (e) => finish(e.target.result);
       req.onerror = () => finish(null);
-      req.onblocked = () => finish(null);
     } catch { finish(null); }
   });
 }
 
-async function loadAllContests() {
-  if (db) {
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => resolve([]);
-    });
-  }
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+function readLocalMirror() {
+  try { const arr = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); return Array.isArray(arr) ? arr : []; } catch { return []; }
+}
+let mirrorWarned = false;
+function writeLocalMirror() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(contests)); }
+  catch { if (!db && !mirrorWarned) { mirrorWarned = true; alert('⚠️ El almacenamiento del navegador está lleno. Haz un Respaldo JSON ahora.'); } }
 }
 
-async function saveContest(contest) {
-  if (db) {
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(contest);
-      tx.oncomplete = resolve; tx.onerror = reject;
-    });
-  } else {
-    const idx = contests.findIndex((c) => c.id === contest.id);
-    if (idx >= 0) contests[idx] = contest; else contests.push(contest);
-    localStorage.setItem(LS_KEY, JSON.stringify(contests));
-  }
+function idbGetAll() {
+  return new Promise((resolve) => {
+    if (!db) return resolve([]);
+    try {
+      const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    } catch { resolve([]); }
+  });
 }
+
+// Une la base principal (IndexedDB) con la copia local: por cada concurso gana la versión más nueva
+async function loadAllContests() {
+  const fromDb = await idbGetAll(), fromLs = readLocalMirror(), byId = new Map();
+  fromDb.forEach((c) => byId.set(c.id, c));
+  const toMigrate = [];
+  fromLs.forEach((c) => {
+    if (!c || !c.id) return;
+    const cur = byId.get(c.id);
+    if (!cur || (c.rev || 0) > (cur.rev || 0)) { byId.set(c.id, c); if (db) toMigrate.push(c); }
+  });
+  for (const c of toMigrate) { try { await idbPut(c); } catch {} }
+  return [...byId.values()].sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+}
+
+function idbPut(contest) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(contest);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error);
+  });
+}
+
+class ConflictError extends Error {}
+const syncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('concursopro_sync') : null;
+
+// Guarda con control de versión: si otra pestaña guardó algo más nuevo, no lo pisa
+async function saveContest(contest) {
+  const prevRev = contest.rev || 0;
+  const next = () => { contest.rev = prevRev + 1; contest.updatedAt = new Date().toISOString(); };
+  try {
+    if (db) {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite'), store = tx.objectStore(STORE_NAME);
+        const getReq = store.get(contest.id);
+        getReq.onsuccess = () => {
+          const stored = getReq.result;
+          if (stored && (stored.rev || 0) > prevRev) { tx.abort(); return reject(new ConflictError()); }
+          next(); store.put(contest);
+        };
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    } else {
+      const stored = readLocalMirror().find((c) => c.id === contest.id);
+      if (stored && (stored.rev || 0) > prevRev) throw new ConflictError();
+      next();
+    }
+  } catch (err) {
+    if (err instanceof ConflictError) {
+      contests = await loadAllContests(); renderAll();
+      alert('⚠️ La app se modificó en otra pestaña o ventana. Recargué los datos más nuevos: repite tu última acción.');
+    } else {
+      alert('⚠️ No se pudo guardar el cambio. Haz un Respaldo JSON y recarga la app.');
+    }
+    throw err;
+  }
+  const idx = contests.findIndex((c) => c.id === contest.id);
+  if (idx >= 0) contests[idx] = contest; else contests.push(contest);
+  writeLocalMirror();
+  syncChannel?.postMessage({ id: contest.id, rev: contest.rev });
+}
+
+if (syncChannel) syncChannel.onmessage = async () => {
+  if (isDrawing) return;
+  contests = await loadAllContests(); renderAll(); showToast('Datos actualizados desde otra pestaña');
+};
 
 function getActiveContest() {
   const c = contests.find((x) => x.id === activeContestId) || contests[0];
@@ -261,6 +322,7 @@ function createDefaultContest() {
 }
 
 const escapeHtml = (str) => String(str || '').replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+const jsArg = (v) => escapeHtml(JSON.stringify(String(v)));
 const formatCLP = (n) => '$' + Number(n || 0).toLocaleString('es-CL');
 
 function showToast(msg) {
@@ -317,6 +379,7 @@ function getCustomerStats(contest, person) {
 }
 const rutOrDash = (rut) => (cleanRut(rut) ? rut : 'Sin RUT');
 
+const MAX_CODES_PER_SALE = 120;
 const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 function generateUniqueCode(existingSet) {
   const bytes = new Uint8Array(6);
@@ -372,11 +435,13 @@ function renderPacks(c) {
   }).join('');
   updatePackCountUI();
 }
-function selectPack(idx) { selectedPackIndex = idx; renderPacks(getActiveContest()); updatePackCountUI(); }
+function selectPack(idx) { selectedPackIndex = idx; renderPacks(getActiveContest()); setPackCount(packCount); }
 function changePackCount(delta) { setPackCount(packCount + delta); }
 function setPackCount(val) {
   const n = parseInt(val, 10);
-  packCount = Math.min(50, Math.max(1, isNaN(n) ? 1 : n));
+  const pack = getActiveContest()?.packs[selectedPackIndex];
+  const maxPacks = pack ? Math.max(1, Math.floor(MAX_CODES_PER_SALE / pack.qty)) : 50;
+  packCount = Math.min(maxPacks, Math.max(1, isNaN(n) ? 1 : n));
   updatePackCountUI();
 }
 function updatePackCountUI() {
@@ -403,7 +468,7 @@ function onRutInput() {
     const needsAutofill = !document.getElementById('buyerName').value.trim() || !document.getElementById('buyerPhone').value.trim();
     retBox.classList.remove('hidden');
     retBox.innerHTML = `<span>⭐ <strong>${escapeHtml(stats.lastSale.buyerName)}</strong> ya suma <strong>${stats.totalTickets} ${stats.totalTickets === 1 ? 'ticket' : 'tickets'}</strong>.</span>
-      ${needsAutofill ? `<button type="button" class="btn btn-info btn-sm" onclick="autofillReturning('${escapeHtml(stats.lastSale.id)}')">Usar datos</button>` : ''}`;
+      ${needsAutofill ? `<button type="button" class="btn btn-info btn-sm" onclick="autofillReturning(${jsArg(stats.lastSale.id)})">Usar datos</button>` : ''}`;
   } else retBox.classList.add('hidden');
 }
 
@@ -436,7 +501,7 @@ function applyQuickPaste() {
       packIdx = c.packs.findIndex((p) => p.qty === num || p.price === num);
     } else if (!rut && /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/.test(line)) rut = line.match(/\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/)[0];
     else if (!phone && /(\+?56)?\s*9[\s-]?\d{4}[\s-]?\d{4}/.test(line)) phone = line.match(/(\+?56)?\s*9[\s-]?\d{4}[\s-]?\d{4}/)[0];
-    else if (packIdx < 0 && /\b(10\.?000|5\.?000|2\.?000|8|3|1)\b/.test(lower)) {
+    else if (packIdx < 0 && /^\s*(pack\s*)?x?\s*\$?\s*\d{1,3}(\.?\d{3})*\s*(tickets?|packs?|n[uú]meros?)?\s*$/i.test(lower)) {
       const num = parseInt(line.replace(/\D/g, ''), 10);
       const found = c.packs.findIndex((p) => p.qty === num || p.price === num);
       if (found >= 0) packIdx = found; else if (!name) name = line;
@@ -454,6 +519,7 @@ async function createSale() {
   const rawRut = document.getElementById('buyerRut').value.trim(), phone = document.getElementById('buyerPhone').value.trim();
   const pack = c.packs[selectedPackIndex], mult = packCount;
   const totalQty = pack.qty * mult, totalAmount = pack.price * mult;
+  if (totalQty > MAX_CODES_PER_SALE) return showToast(`Máximo ${MAX_CODES_PER_SALE} códigos por venta. Divídela en dos.`);
   if (!name) return showToast('Ingresa el nombre del comprador');
 
   const cleaned = cleanRut(rawRut), fiveMinAgo = Date.now() - 5 * 60 * 1000;
@@ -494,8 +560,8 @@ function renderSalesList() {
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
         <div class="item-main"><div class="item-title">${escapeHtml(s.buyerName)} · ${formatCLP(s.amount)}</div>
         <div class="item-sub">${escapeHtml(rutOrDash(s.buyerRut))} · ${s.packCount > 1 ? s.packCount + ' packs · ' : 'Pack '}x${s.qty} (Acum: ${total}) · ${dateStr}</div></div>
-        <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="openTicketById('${s.id}')">🎟️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">🗑️</button></div>
+        <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="openTicketById(${jsArg(s.id)})">🎟️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSale(${jsArg(s.id)})">🗑️</button></div>
       </div>
       <div class="code-chips">${s.codes.map((cd) => `<span class="chip">${escapeHtml(cd)}</span>`).join('')}</div></div>`;
   }).join('');
@@ -520,7 +586,7 @@ function loadImageSafe(src) {
 async function renderTicketToBlob(contest, sale) {
   const th = TICKET_THEMES[contest.theme] || TICKET_THEMES.classic;
   const logoImg = await loadImageSafe(contest.logoDataUrl);
-  const W = 1080, cols = sale.codes.length === 1 ? 1 : 2, rows = Math.ceil(sale.codes.length / cols);
+  const W = 1080, cols = sale.codes.length === 1 ? 1 : sale.codes.length <= 24 ? 2 : 3, rows = Math.ceil(sale.codes.length / cols);
   const gridH = rows * 112, logoSpace = logoImg ? 156 : 0;
   const codesTitleY = 588 + logoSpace, codesStartY = codesTitleY + 34, qrBoxY = codesStartY + gridH + 28, H = qrBoxY + 236 + 78;
 
@@ -566,13 +632,13 @@ async function renderTicketToBlob(contest, sale) {
   ctx.textAlign = 'center'; ctx.fillStyle = th.textMuted; ctx.font = '800 27px system-ui, Roboto, sans-serif';
   ctx.fillText(sale.codes.length === 1 ? 'TU CÓDIGO DE SORTEO' : 'TUS CÓDIGOS DE SORTEO', W / 2, codesTitleY);
 
-  const cardW = cols === 1 ? 620 : 426, cardH = 88, gapX = 36;
-  const startX = cols === 1 ? (W - cardW) / 2 : (W - (cardW * 2 + gapX)) / 2;
+  const cardW = cols === 1 ? 620 : cols === 2 ? 426 : 286, cardH = 88, gapX = cols === 3 ? 24 : 36;
+  const startX = (W - (cardW * cols + gapX * (cols - 1))) / 2;
   sale.codes.forEach((code, idx) => {
     const r = Math.floor(idx / cols), col = idx % cols, cx = startX + col * (cardW + gapX), cy = codesStartY + r * 112;
     drawRoundRect(ctx, cx, cy, cardW, cardH, 16); ctx.fillStyle = th.codeBg; ctx.fill();
     ctx.lineWidth = 2.5; ctx.strokeStyle = th.border; ctx.stroke();
-    ctx.fillStyle = th.codeText; ctx.font = '900 39px ui-monospace, Roboto Mono, monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = th.codeText; ctx.font = `900 ${cols === 3 ? 32 : 39}px ui-monospace, Roboto Mono, monospace`; ctx.textAlign = 'center';
     ctx.fillText(code, cx + cardW / 2, cy + 58);
   });
 
@@ -667,7 +733,7 @@ function renderPrizesList(c) {
   </div><div style="display:flex;gap:4px;">
     ${idx > 0 ? `<button class="btn btn-secondary btn-sm" onclick="movePrize(${idx}, -1)">↑</button>` : ''}
     ${idx < c.prizes.length - 1 ? `<button class="btn btn-secondary btn-sm" onclick="movePrize(${idx}, 1)">↓</button>` : ''}
-    ${!p.winner ? `<button class="btn btn-danger btn-sm" onclick="deletePrize('${p.id}')">🗑️</button>` : ''}
+    ${!p.winner ? `<button class="btn btn-danger btn-sm" onclick="deletePrize(${jsArg(p.id)})">🗑️</button>` : ''}
   </div></div>`).join('');
 }
 async function movePrize(idx, delta) {
@@ -687,7 +753,7 @@ function toggleSound() { soundEnabled = !soundEnabled; try { localStorage.setIte
 
 function renderDrawTab(c) {
   const sel = document.getElementById('drawPrizeSelect'), pending = c.prizes.filter((p) => !p.winner), prevVal = sel.value;
-  sel.innerHTML = pending.length ? pending.map((p) => `<option value="${p.id}">${p.isMajor ? '⭐ ' : ''}${escapeHtml(p.name)}</option>`).join('') : '<option value="">No hay premios pendientes</option>';
+  sel.innerHTML = pending.length ? pending.map((p) => `<option value="${escapeHtml(p.id)}">${p.isMajor ? '⭐ ' : ''}${escapeHtml(p.name)}</option>`).join('') : '<option value="">No hay premios pendientes</option>';
   if (pending.some((p) => p.id === prevVal)) sel.value = prevVal;
 
   const activeCount = c.tickets.filter((t) => !t.wonPrizeId).length;
@@ -730,7 +796,7 @@ function renderDrawTab(c) {
     <div class="item-title">${p.isMajor ? '⭐ ' : ''}🏆 ${escapeHtml(p.name)}</div>
     <div class="item-sub">${escapeHtml(p.winner.buyerName)} ${cleanRut(p.winner.buyerRut) ? '(' + maskRut(p.winner.buyerRut) + ')' : ''}</div>
     <div class="code-chips"><span class="chip winner">${escapeHtml(p.winner.code)}</span></div>
-  </div>${p.winner.buyerPhone ? `<button class="btn btn-primary btn-sm" onclick="contactWinner('${p.id}')">💬 WA</button>` : ''}</div>`).join('') : '<div class="hint" style="margin:0;">Todavía no se ha sorteado ningún premio.</div>';
+  </div>${p.winner.buyerPhone ? `<button class="btn btn-primary btn-sm" onclick="contactWinner(${jsArg(p.id)})">💬 WA</button>` : ''}</div>`).join('') : '<div class="hint" style="margin:0;">Todavía no se ha sorteado ningún premio.</div>';
 }
 
 async function undoLastWinner() {
@@ -902,7 +968,7 @@ function closeQrScanner() {
 }
 
 function renderSettingsTab(c) {
-  document.getElementById('contestSelector').innerHTML = contests.map((x) => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${escapeHtml(x.name)} (${x.tickets.length} tickets)</option>`).join('');
+  document.getElementById('contestSelector').innerHTML = contests.map((x) => `<option value="${escapeHtml(x.id)}" ${x.id === c.id ? 'selected' : ''}>${escapeHtml(x.name)} (${x.tickets.length} tickets)</option>`).join('');
   document.getElementById('editContestName').value = c.name;
   document.getElementById('editContestDate').value = c.drawDate || '';
   document.getElementById('editContestContact').value = c.contact || '';
@@ -936,9 +1002,12 @@ async function exportContestJson() {
   const blob = new Blob([JSON.stringify(copy, null, 2)], { type: 'application/json' });
   const filename = `respaldo-${c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
   const file = new File([blob], filename, { type: 'application/json' });
+  let delivered = false;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Respaldo ' + c.name }); } catch (err) { if (err.name === 'AbortError') return; }
-  } else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); }
+    try { await navigator.share({ files: [file], title: 'Respaldo ' + c.name }); delivered = true; }
+    catch (err) { if (err.name === 'AbortError') return; }
+  }
+  if (!delivered) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); }
   c.unsavedChanges = 0; await saveContest(c); renderAll(); showToast('Respaldo generado');
 }
 function exportContestCsv() {
@@ -953,8 +1022,14 @@ async function importContestJson(e) {
     const data = JSON.parse(await file.text());
     if (!data.id || !data.name || !Array.isArray(data.tickets)) return showToast('Archivo no válido');
     if (!data.theme) data.theme = 'classic'; data.unsavedChanges = 0;
-    const idx = contests.findIndex((x) => x.id === data.id);
-    if (idx >= 0) contests[idx] = data; else contests.push(data);
+    const existing = contests.find((x) => x.id === data.id);
+    if (existing) {
+      const nowSales = existing.sales.length, bkSales = (data.sales || []).length;
+      const when = data.exportedAt ? new Date(data.exportedAt).toLocaleString('es-CL') : 'fecha desconocida';
+      const warn = bkSales < nowSales ? `\n\n⚠️ EL RESPALDO TIENE MENOS VENTAS QUE LO ACTUAL. Se perderían ${nowSales - bkSales} venta(s).` : '';
+      if (!confirm(`¿Reemplazar "${existing.name}" con el respaldo?\n\nActual: ${nowSales} ventas, ${existing.tickets.length} tickets.\nRespaldo (${when}): ${bkSales} ventas, ${data.tickets.length} tickets.${warn}`)) { e.target.value = ''; return; }
+      data.rev = existing.rev || 0;
+    } else data.rev = 0;
     await saveContest(data); activeContestId = data.id; try { localStorage.setItem('concursopro_active_id', data.id); } catch {}
     renderAll(); showToast('Concurso restaurado con éxito');
   } catch { showToast('Error al leer el archivo JSON'); }
