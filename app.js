@@ -1,27 +1,34 @@
 const TICKET_THEMES = {
+  talonario: {
+    name: 'Talonario', swatch: '#D9311C', stubText: '#FFFFFF',
+    bg1: '#2A2822', bg2: '#2A2822', card: '#FBFAF6', inner: '#EEEBE3',
+    border: '#16150F', accent: '#D9311C', pillBg: 'rgba(217,49,28,0.12)',
+    pillBorder: '#D9311C', pillText: '#D9311C', textMain: '#16150F',
+    textMuted: '#5E5B52', codeBg: '#FBFAF6', codeText: '#16150F', divider: '#B9B4A6'
+  },
   classic: {
-    name: 'Noche Dorada', swatch: '#f59e0b',
+    name: 'Noche Dorada', swatch: '#f59e0b', stubText: '#0b1120',
     bg1: '#0b1120', bg2: '#132038', card: '#162235', inner: '#0f172a',
     border: '#f59e0b', accent: '#f59e0b', pillBg: 'rgba(16,185,129,0.18)',
     pillBorder: '#10b981', pillText: '#34d399', textMain: '#ffffff',
     textMuted: '#94a3b8', codeBg: '#0b1324', codeText: '#fef3c7', divider: '#334155'
   },
   royal: {
-    name: 'Azul Real', swatch: '#38bdf8',
+    name: 'Azul Real', swatch: '#38bdf8', stubText: '#09152b',
     bg1: '#09152b', bg2: '#102a54', card: '#112244', inner: '#0a1730',
     border: '#38bdf8', accent: '#38bdf8', pillBg: 'rgba(251,191,36,0.18)',
     pillBorder: '#fbbf24', pillText: '#fde68a', textMain: '#ffffff',
     textMuted: '#93c5fd', codeBg: '#081226', codeText: '#e0f2fe', divider: '#1e3a6d'
   },
   ruby: {
-    name: 'Fuego VIP', swatch: '#fb7185',
+    name: 'Fuego VIP', swatch: '#fb7185', stubText: '#1a0812',
     bg1: '#1a0812', bg2: '#331020', card: '#280d1b', inner: '#190711',
     border: '#fb7185', accent: '#fbbf24', pillBg: 'rgba(251,113,133,0.18)',
     pillBorder: '#fb7185', pillText: '#fecdd3', textMain: '#ffffff',
     textMuted: '#fda4af', codeBg: '#16050e', codeText: '#fef3c7', divider: '#542038'
   },
   light: {
-    name: 'Blanco Limpio', swatch: '#10b981',
+    name: 'Blanco Limpio', swatch: '#10b981', stubText: '#ffffff',
     bg1: '#e2e8f0', bg2: '#f8fafc', card: '#ffffff', inner: '#f1f5f9',
     border: '#059669', accent: '#059669', pillBg: 'rgba(5,150,105,0.12)',
     pillBorder: '#059669', pillText: '#047857', textMain: '#0f172a',
@@ -303,19 +310,19 @@ if (syncChannel) syncChannel.onmessage = async () => {
 
 function getActiveContest() {
   const c = contests.find((x) => x.id === activeContestId) || contests[0];
-  if (c && !c.theme) c.theme = 'classic';
+  if (c && !c.theme) c.theme = 'talonario';
   return c;
 }
 
 function createDefaultContest() {
   return {
     id: 'c_' + Date.now(), name: 'Gran Concurso Oficial', drawDate: 'Por definir',
-    contact: '@tuconcurso', theme: 'classic', logoDataUrl: '',
+    contact: '@tuconcurso', theme: 'talonario', logoDataUrl: '',
     createdAt: new Date().toISOString(), unsavedChanges: 0,
     packs: [
       { qty: 1, price: 2000, badge: '' },
       { qty: 3, price: 5000, badge: 'Ahorras $1.000' },
-      { qty: 8, price: 10000, badge: '🔥 Más elegido' }
+      { qty: 8, price: 10000, badge: 'Más vendido' }
     ],
     prizes: [], sales: [], tickets: []
   };
@@ -403,8 +410,17 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
+  ['vender', 'premios', 'sorteo', 'ajustes'].forEach((t) => document.body.classList.toggle('tab-' + t, t === tab));
+  window.scrollTo(0, 0);
   renderAll();
 }
+function openContestSwitcher() {
+  switchTab('ajustes');
+  const sel = document.getElementById('contestSelector');
+  document.getElementById('contestCard').scrollIntoView({ block: 'start' });
+  setTimeout(() => sel.focus(), 50);
+}
+const stripEmoji = (t) => String(t || '').replace(/[\p{Extended_Pictographic}\uFE0F]\s*/gu, '').trim();
 
 function renderAll() {
   const c = getActiveContest(); if (!c) return;
@@ -415,7 +431,7 @@ function renderAll() {
   const banner = document.getElementById('backupBanner');
   if ((c.unsavedChanges || 0) > 0) {
     banner.classList.remove('hidden');
-    document.getElementById('backupBannerText').textContent = `⚠️ ${c.unsavedChanges} cambio${c.unsavedChanges > 1 ? 's' : ''} sin respaldar`;
+    document.getElementById('backupBannerText').textContent = `${c.unsavedChanges} cambio${c.unsavedChanges > 1 ? 's' : ''} sin respaldar`;
   } else banner.classList.add('hidden');
 
   document.getElementById('kpiSales').textContent = c.sales.length;
@@ -429,9 +445,10 @@ function renderPacks(c) {
   document.getElementById('packsContainer').innerHTML = c.packs.map((p, idx) => {
     const unit = Math.round(p.price / p.qty), isFeatured = idx === c.packs.length - 1;
     return `<button type="button" class="pack-btn ${idx === selectedPackIndex ? 'selected' : ''} ${isFeatured ? 'featured' : ''}" onclick="selectPack(${idx})">
-      ${p.badge ? `<span class="pack-badge">${escapeHtml(p.badge)}</span>` : ''}
-      <span class="pack-qty">x${p.qty}</span><span class="pack-price">${formatCLP(p.price)}</span>
-      <span class="pack-unit">${formatCLP(unit)} c/u</span></button>`;
+      ${stripEmoji(p.badge) ? `<span class="pack-badge">${escapeHtml(stripEmoji(p.badge))}</span>` : ''}
+      <span class="pack-qty">${p.qty}</span>
+      <span class="pack-unit">${p.qty === 1 ? 'número' : formatCLP(unit) + ' c/u'}</span>
+      <span class="pack-price">${formatCLP(p.price)}</span></button>`;
   }).join('');
   updatePackCountUI();
 }
@@ -451,23 +468,25 @@ function updatePackCountUI() {
   if (input && String(input.value) !== String(packCount)) input.value = packCount;
   const sum = document.getElementById('packCountSummary');
   if (sum) sum.innerHTML = `${packCount} × pack x${pack.qty} = <strong>${pack.qty * packCount} ${pack.qty * packCount === 1 ? 'ticket' : 'tickets'}</strong> · Total <strong>${formatCLP(pack.price * packCount)}</strong>`;
-  const btn = document.getElementById('btnCreateSale');
-  if (btn) btn.textContent = `🎟️ Confirmar ${formatCLP(pack.price * packCount)} y generar ${pack.qty * packCount === 1 ? 'ticket' : 'tickets'}`;
+  const n = pack.qty * packCount;
+  const tot = document.getElementById('saleBarTotal'), cnt = document.getElementById('saleBarCount');
+  if (tot) tot.textContent = formatCLP(pack.price * packCount);
+  if (cnt) cnt.textContent = `${n} ${n === 1 ? 'número' : 'números'}`;
 }
 
 function onRutInput() {
   const val = document.getElementById('buyerRut').value.trim();
   const hint = document.getElementById('rutHint'), retBox = document.getElementById('returningCustomerBox');
   const c = getActiveContest();
-  if (!val) { hint.className = 'hint'; hint.textContent = 'RUT opcional. Sin RUT, el cliente se reconoce por su WhatsApp. Verifica el abono en tu banco antes de emitir.'; retBox.classList.add('hidden'); return; }
-  if (validateRut(val)) { hint.className = 'hint ok'; hint.textContent = '✓ RUT válido (' + formatRut(val) + ')'; }
-  else { hint.className = 'hint warn'; hint.textContent = '⚠️ Revisa el dígito verificador del RUT (igual puedes emitir si es pasaporte).'; }
+  if (!val) { hint.className = 'hint'; hint.textContent = 'Confirma la transferencia en tu banco antes de emitir.'; retBox.classList.add('hidden'); return; }
+  if (validateRut(val)) { hint.className = 'hint ok'; hint.textContent = 'RUT válido: ' + formatRut(val); }
+  else { hint.className = 'hint warn'; hint.textContent = 'Revisa el dígito verificador (puedes emitir igual si es pasaporte).'; }
 
   const stats = getCustomerStats(c, val);
   if (stats.totalTickets > 0 && stats.lastSale) {
     const needsAutofill = !document.getElementById('buyerName').value.trim() || !document.getElementById('buyerPhone').value.trim();
     retBox.classList.remove('hidden');
-    retBox.innerHTML = `<span>⭐ <strong>${escapeHtml(stats.lastSale.buyerName)}</strong> ya suma <strong>${stats.totalTickets} ${stats.totalTickets === 1 ? 'ticket' : 'tickets'}</strong>.</span>
+    retBox.innerHTML = `<span><strong>${escapeHtml(stats.lastSale.buyerName)}</strong> ya suma <strong>${stats.totalTickets} ${stats.totalTickets === 1 ? 'ticket' : 'tickets'}</strong>.</span>
       ${needsAutofill ? `<button type="button" class="btn btn-info btn-sm" onclick="autofillReturning(${jsArg(stats.lastSale.id)})">Usar datos</button>` : ''}`;
   } else retBox.classList.add('hidden');
 }
@@ -488,30 +507,44 @@ function copySalesTemplate() {
 
 function applyQuickPaste() {
   const text = document.getElementById('quickPasteBox').value.trim();
-  if (!text) return showToast('Pega primero el texto del cliente');
+  if (!text) return showToast('Pega primero el mensaje del cliente');
   const c = getActiveContest(), lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  let name = '', rut = '', phone = '', packIdx = -1;
+  let name = '', rut = '', phone = '', packIdx = -1, count = 0;
+  const RUT_RE = /\b\d{1,2}\.?\d{3}\.?\d{3}(?:-[\dkK]|[kK])\b|\b\d{1,2}\.\d{3}\.\d{3}-?[\dkK]\b/, PHONE_RE = /(\+?56)?\s*9[\s-]?\d{4}[\s-]?\d{4}/;
+  const findPack = (num) => c.packs.findIndex((p) => p.qty === num || p.price === num);
   for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (/^nombre\s*[:\-]/i.test(line)) name = line.replace(/^nombre\s*[:\-]\s*/i, '').trim();
-    else if (/^rut\s*[:\-]/i.test(line)) rut = line.replace(/^rut\s*[:\-]\s*/i, '').trim();
-    else if (/^(whatsapp|fono|tel[eé]fono|cel)\s*[:\-]/i.test(line)) phone = line.replace(/^(whatsapp|fono|tel[eé]fono|cel)\s*[:\-]\s*/i, '').trim();
-    else if (/^(pack|tickets?|cantidad|monto)\s*[:\-]/i.test(line)) {
-      const num = parseInt(line.replace(/\D/g, ''), 10);
-      packIdx = c.packs.findIndex((p) => p.qty === num || p.price === num);
-    } else if (!rut && /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/.test(line)) rut = line.match(/\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/)[0];
-    else if (!phone && /(\+?56)?\s*9[\s-]?\d{4}[\s-]?\d{4}/.test(line)) phone = line.match(/(\+?56)?\s*9[\s-]?\d{4}[\s-]?\d{4}/)[0];
-    else if (packIdx < 0 && /^\s*(pack\s*)?x?\s*\$?\s*\d{1,3}(\.?\d{3})*\s*(tickets?|packs?|n[uú]meros?)?\s*$/i.test(lower)) {
-      const num = parseInt(line.replace(/\D/g, ''), 10);
-      const found = c.packs.findIndex((p) => p.qty === num || p.price === num);
-      if (found >= 0) packIdx = found; else if (!name) name = line;
-    } else if (!name) name = line;
+    let rest = line;
+    const label = line.match(/^(nombre|rut|whatsapp|fono|tel[eé]fono|cel(ular)?|pack|tickets?|n[uú]meros?|cantidad|monto)\s*[:\-]\s*(.*)$/i);
+    if (label) {
+      const key = label[1].toLowerCase(), val = label[3].trim();
+      if (key === 'nombre') { name = val; continue; }
+      if (key === 'rut') { rut = val; continue; }
+      if (/whatsapp|fono|tel|cel/.test(key)) { phone = val; continue; }
+      rest = val;
+    }
+    if (!rut && RUT_RE.test(rest)) { rut = rest.match(RUT_RE)[0]; rest = rest.replace(RUT_RE, ' '); }
+    if (!phone && PHONE_RE.test(rest)) { phone = rest.match(PHONE_RE)[0]; rest = rest.replace(PHONE_RE, ' '); }
+    // "4 del pack de 8", "pack de 8", "x8", "$10.000", "2 packs"
+    const pk = rest.match(/pack\s*(?:de|x)?\s*(\d{1,3})\b/i) || rest.match(/\bx\s*(\d{1,3})\b/i) || rest.match(/\$\s*(\d{1,3}(?:\.?\d{3})+)/);
+    if (pk && packIdx < 0) { const f = findPack(parseInt(pk[1].replace(/\D/g, ''), 10)); if (f >= 0) packIdx = f; }
+    const ct = rest.match(/\b(\d{1,2})\s*(?:packs?\b|del\s+pack|de\s+(?:los|esos)?\s*packs?|veces)/i);
+    if (ct) { count = parseInt(ct[1], 10); rest = rest.replace(ct[0], ' '); }
+    if (pk) rest = rest.replace(pk[0], ' ');
+    if (/^\s*\$?\s*\d[\d.]*\s*$/.test(rest) && packIdx < 0) { const f = findPack(parseInt(rest.replace(/\D/g, ''), 10)); if (f >= 0) { packIdx = f; continue; } }
+    if (!name && /\p{L}{2,}/u.test(rest)) {
+      const nm = rest.replace(/^(hola|buenas(\s+(tardes|noches|d[ií]as))?|buen\s+d[ií]a|hey)[!,.\s]*/i, '')
+        .replace(/^(soy|me llamo|mi nombre es|les habla|te habla|habla)\s+/i, '')
+        .replace(/[^\p{L}\s'.-]/gu, ' ').replace(/\s+/g, ' ').trim();
+      if (nm && nm.split(' ').length <= 5 && !/\b(quiero|quisiera|comprar|transfer|pago|pagu[eé]|n[uú]meros?|tickets?|gracias)\b/i.test(nm)) name = nm;
+    }
   }
-  if (name) document.getElementById('buyerName').value = name;
-  if (phone) document.getElementById('buyerPhone').value = phone;
-  if (rut) { document.getElementById('buyerRut').value = formatRut(rut); onRutInput(); }
-  if (packIdx >= 0) selectPack(packIdx);
-  showToast('Datos cargados');
+  const found = [];
+  if (name) { document.getElementById('buyerName').value = name; found.push('nombre'); }
+  if (phone) { document.getElementById('buyerPhone').value = phone.trim(); found.push('WhatsApp'); }
+  if (rut) { document.getElementById('buyerRut').value = formatRut(rut); onRutInput(); found.push('RUT'); }
+  if (packIdx >= 0) { selectPack(packIdx); found.push('pack'); }
+  if (count > 0) { setPackCount(count); found.push('cantidad'); }
+  showToast(found.length ? 'Leí: ' + found.join(', ') + '. Revisa antes de emitir.' : 'No encontré datos; complétalos a mano');
 }
 
 async function createSale() {
@@ -560,17 +593,17 @@ function renderSalesList() {
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
         <div class="item-main"><div class="item-title">${escapeHtml(s.buyerName)} · ${formatCLP(s.amount)}</div>
         <div class="item-sub">${escapeHtml(rutOrDash(s.buyerRut))} · ${s.packCount > 1 ? s.packCount + ' packs · ' : 'Pack '}x${s.qty} (Acum: ${total}) · ${dateStr}</div></div>
-        <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="openTicketById(${jsArg(s.id)})">🎟️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSale(${jsArg(s.id)})">🗑️</button></div>
+        <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm" onclick="openTicketById(${jsArg(s.id)})">Ticket</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSale(${jsArg(s.id)})">Anular</button></div>
       </div>
       <div class="code-chips">${s.codes.map((cd) => `<span class="chip">${escapeHtml(cd)}</span>`).join('')}</div></div>`;
   }).join('');
 }
 
-async function deleteSale(saleId) {
+async function deleteSale(saleId, skipConfirm) {
   const c = getActiveContest();
   if (c.tickets.some((t) => t.saleId === saleId && t.wonPrizeId)) return showToast('No se puede anular: ya ganó un premio');
-  if (!confirm('¿Anular esta venta y eliminar sus tickets?')) return;
+  if (!skipConfirm && !confirm('¿Anular esta venta y eliminar sus números?')) return;
   c.sales = c.sales.filter((s) => s.id !== saleId); c.tickets = c.tickets.filter((t) => t.saleId !== saleId);
   c.unsavedChanges = (c.unsavedChanges || 0) + 1; await saveContest(c); renderAll(); showToast('Venta anulada');
 }
@@ -583,84 +616,140 @@ function loadImageSafe(src) {
   return new Promise((resolve) => { if (!src) return resolve(null); const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = src; });
 }
 
+const F_DISPLAY = '"Bricolage Grotesque", system-ui, sans-serif';
+const F_UI = '"Instrument Sans", system-ui, sans-serif';
+const F_MONO = '"IBM Plex Mono", ui-monospace, monospace';
+let fontsPromise = null;
+function ensureTicketFonts() {
+  if (!document.fonts || !document.fonts.load) return Promise.resolve();
+  if (!fontsPromise) fontsPromise = Promise.all([
+    document.fonts.load(`800 60px ${F_DISPLAY}`), document.fonts.load(`700 26px ${F_UI}`),
+    document.fonts.load(`600 24px ${F_UI}`), document.fonts.load(`600 32px ${F_MONO}`)
+  ]).catch(() => {});
+  return Promise.race([fontsPromise, new Promise((r) => setTimeout(r, 2500))]);
+}
+function fitText(ctx, text, maxW) {
+  let t = String(text || '');
+  if (ctx.measureText(t).width <= maxW) return t;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+function wrapText(ctx, text, maxW, maxLines) {
+  const words = String(text || '').split(/\s+/).filter(Boolean), lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width <= maxW || !cur) cur = test; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) { const rest = lines.slice(maxLines - 1).join(' '); lines.length = maxLines - 1; lines.push(fitText(ctx, rest, maxW)); }
+  return lines.map((l) => fitText(ctx, l, maxW));
+}
+
+// Ticket estilo talonario: talón de color a la izquierda, números en monoespaciada, sello PAGADO y QR
 async function renderTicketToBlob(contest, sale) {
-  const th = TICKET_THEMES[contest.theme] || TICKET_THEMES.classic;
+  const th = TICKET_THEMES[contest.theme] || TICKET_THEMES.talonario;
+  await ensureTicketFonts();
   const logoImg = await loadImageSafe(contest.logoDataUrl);
-  const W = 1080, cols = sale.codes.length === 1 ? 1 : sale.codes.length <= 24 ? 2 : 3, rows = Math.ceil(sale.codes.length / cols);
-  const gridH = rows * 112, logoSpace = logoImg ? 156 : 0;
-  const codesTitleY = 588 + logoSpace, codesStartY = codesTitleY + 34, qrBoxY = codesStartY + gridH + 28, H = qrBoxY + 236 + 78;
+  const n = sale.codes.length, cols = n === 1 ? 1 : n <= 12 ? 3 : 4, rows = Math.ceil(n / cols);
+  const W = 1080, M = 40, STUB = 170, PAD = 46, X0 = M + STUB, cx = X0 + PAD, CW = W - M - X0 - PAD * 2;
+  const rowH = n === 1 ? 110 : 62, codeFont = cols === 1 ? 64 : cols === 3 ? 36 : 30;
+
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = `800 60px ${F_DISPLAY}`;
+  const titleLines = wrapText(meas, contest.name || 'Concurso', CW, 2);
+
+  let H = M + PAD;
+  const logoY = H; if (logoImg) H += 120 + 24;
+  const kickerY = H + 22; H += 22 + 18;
+  const titleY = H + 54; H += titleLines.length * 66 + 20;
+  const infoY = H; H += 132 + 30;
+  const codesHeadY = H + 22; H += 22 + 20;
+  const codesY = H; H += rows * rowH + 10;
+  const bandY = H; H += 100;
+  const qrY = H; H += 196;
+  H += PAD + M;
+  H = Math.max(H, 760);
 
   const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, W, H); grad.addColorStop(0, th.bg1); grad.addColorStop(1, th.bg2);
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-  drawRoundRect(ctx, 42, 42, W - 84, H - 84, 36); ctx.fillStyle = th.card; ctx.fill();
-  ctx.lineWidth = 4; ctx.strokeStyle = th.border; ctx.stroke();
+  ctx.fillStyle = th.bg1; ctx.fillRect(0, 0, W, H);
 
-  let y = 122;
+  // papel + talón
+  ctx.save(); drawRoundRect(ctx, M, M, W - 2 * M, H - 2 * M, 22); ctx.clip();
+  ctx.fillStyle = th.card; ctx.fillRect(M, M, W - 2 * M, H - 2 * M);
+  ctx.fillStyle = th.accent; ctx.fillRect(M, M, STUB, H - 2 * M);
+  ctx.restore();
+  ctx.strokeStyle = th.card; ctx.lineWidth = 5; ctx.setLineDash([14, 12]);
+  ctx.beginPath(); ctx.moveTo(X0, M + 26); ctx.lineTo(X0, H - M - 26); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = th.bg1;
+  [[X0, M], [X0, H - M]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.fill(); });
+
+  const stubText = th.stubText || '#FFFFFF';
+  ctx.textAlign = 'center'; ctx.fillStyle = stubText;
+  ctx.font = `800 ${n >= 100 ? 64 : 84}px ${F_DISPLAY}`; ctx.fillText(String(n), M + STUB / 2, M + 120);
+  ctx.font = `700 22px ${F_UI}`; ctx.fillText(n === 1 ? 'NÚMERO' : 'NÚMEROS', M + STUB / 2, M + 158);
+  ctx.save(); ctx.translate(M + STUB / 2, (M + 200 + H - M - 30) / 2); ctx.rotate(-Math.PI / 2);
+  ctx.font = `600 26px ${F_MONO}`; ctx.fillText(`COMPROBANTE Nº ${sale.id}`, 0, 9); ctx.restore();
+
+  // logo
   if (logoImg) {
-    const scale = Math.min(360 / logoImg.width, 128 / logoImg.height, 1);
-    const dw = Math.round(logoImg.width * scale), dh = Math.round(logoImg.height * scale);
-    const dx = Math.round((W - dw) / 2), dy = Math.round(80 + (128 - dh) / 2);
-    ctx.save(); drawRoundRect(ctx, dx, dy, dw, dh, 18); ctx.clip(); ctx.drawImage(logoImg, dx, dy, dw, dh); ctx.restore();
-    y = 122 + logoSpace;
+    const sc = Math.min(320 / logoImg.width, 120 / logoImg.height, 1), dw = Math.round(logoImg.width * sc), dh = Math.round(logoImg.height * sc);
+    ctx.save(); drawRoundRect(ctx, cx, logoY, dw, dh, 12); ctx.clip(); ctx.drawImage(logoImg, cx, logoY, dw, dh); ctx.restore();
   }
 
-  ctx.textAlign = 'center'; ctx.fillStyle = th.accent; ctx.font = '800 26px system-ui, Roboto, sans-serif';
-  ctx.fillText('COMPROBANTE OFICIAL DE PARTICIPACIÓN', W / 2, y);
-  ctx.fillStyle = th.textMain; ctx.font = '900 52px system-ui, Roboto, sans-serif';
-  ctx.fillText(contest.name.slice(0, 28), W / 2, y + 68);
+  // título
+  ctx.textAlign = 'left'; ctx.fillStyle = th.textMuted; ctx.font = `700 22px ${F_UI}`;
+  ctx.fillText('PARTICIPACIÓN', cx, kickerY);
+  ctx.fillStyle = th.textMain; ctx.font = `800 60px ${F_DISPLAY}`;
+  titleLines.forEach((l, i) => ctx.fillText(l, cx, titleY + i * 66));
 
-  const pillText = (sale.packCount > 1 ? `${sale.packCount} PACKS · ` : 'PACK ') + `x${sale.qty} ${sale.qty === 1 ? 'TICKET' : 'TICKETS'} · ${formatCLP(sale.amount)}`;
-  drawRoundRect(ctx, W / 2 - 300, y + 102, 600, 62, 31); ctx.fillStyle = th.pillBg; ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = th.pillBorder; ctx.stroke();
-  ctx.fillStyle = th.pillText; ctx.font = `800 ${pillText.length > 30 ? 25 : 29}px system-ui, Roboto, sans-serif`; ctx.fillText(pillText, W / 2, y + 143);
+  // datos
+  ctx.strokeStyle = th.textMain; ctx.lineWidth = 3;
+  [infoY, infoY + 132].forEach((y) => { ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + CW, y); ctx.stroke(); });
+  const colX = [cx, cx + CW * 0.44, cx + CW * 0.76], colW = [CW * 0.44 - 20, CW * 0.32 - 20, CW * 0.24];
+  const info = [['Titular', sale.buyerName], ['Sorteo', contest.drawDate || 'Por definir'], ['Pagado', formatCLP(sale.amount)]];
+  info.forEach(([lab, val], i) => {
+    ctx.fillStyle = th.textMuted; ctx.font = `600 22px ${F_UI}`; ctx.fillText(lab, colX[i], infoY + 44);
+    ctx.fillStyle = th.textMain; ctx.font = i === 2 ? `600 30px ${F_MONO}` : `700 30px ${F_UI}`;
+    ctx.fillText(fitText(ctx, val, colW[i]), colX[i], infoY + 86);
+  });
+  if (cleanRut(sale.buyerRut)) { ctx.fillStyle = th.textMuted; ctx.font = `500 20px ${F_UI}`; ctx.fillText('RUT ' + maskRut(sale.buyerRut), colX[0], infoY + 116); }
 
-  const infoY = y + 196;
-  drawRoundRect(ctx, 90, infoY, W - 180, 174, 22); ctx.fillStyle = th.inner; ctx.fill();
-  ctx.textAlign = 'left'; ctx.fillStyle = th.textMuted; ctx.font = '700 23px system-ui, Roboto, sans-serif';
-  ctx.fillText('PARTICIPANTE', 130, infoY + 48);
-  ctx.fillStyle = th.textMain; ctx.font = '800 39px system-ui, Roboto, sans-serif';
-  ctx.fillText(sale.buyerName.slice(0, 30), 130, infoY + 98);
-  ctx.fillStyle = th.textMuted; ctx.font = '600 25px system-ui, Roboto, sans-serif';
-  ctx.fillText(`${cleanRut(sale.buyerRut) ? 'RUT: ' + maskRut(sale.buyerRut) + '   •   ' : ''}Emitido: ${new Date(sale.createdAt).toLocaleDateString('es-CL')}`, 130, infoY + 144);
-
-  const divY = infoY + 214;
-  ctx.strokeStyle = th.divider; ctx.lineWidth = 3; ctx.setLineDash([16, 14]);
-  ctx.beginPath(); ctx.moveTo(90, divY); ctx.lineTo(W - 90, divY); ctx.stroke(); ctx.setLineDash([]);
-
-  ctx.textAlign = 'center'; ctx.fillStyle = th.textMuted; ctx.font = '800 27px system-ui, Roboto, sans-serif';
-  ctx.fillText(sale.codes.length === 1 ? 'TU CÓDIGO DE SORTEO' : 'TUS CÓDIGOS DE SORTEO', W / 2, codesTitleY);
-
-  const cardW = cols === 1 ? 620 : cols === 2 ? 426 : 286, cardH = 88, gapX = cols === 3 ? 24 : 36;
-  const startX = (W - (cardW * cols + gapX * (cols - 1))) / 2;
-  sale.codes.forEach((code, idx) => {
-    const r = Math.floor(idx / cols), col = idx % cols, cx = startX + col * (cardW + gapX), cy = codesStartY + r * 112;
-    drawRoundRect(ctx, cx, cy, cardW, cardH, 16); ctx.fillStyle = th.codeBg; ctx.fill();
-    ctx.lineWidth = 2.5; ctx.strokeStyle = th.border; ctx.stroke();
-    ctx.fillStyle = th.codeText; ctx.font = `900 ${cols === 3 ? 32 : 39}px ui-monospace, Roboto Mono, monospace`; ctx.textAlign = 'center';
-    ctx.fillText(code, cx + cardW / 2, cy + 58);
+  // números
+  ctx.fillStyle = th.textMuted; ctx.font = `700 22px ${F_UI}`;
+  ctx.fillText(n === 1 ? 'TU NÚMERO' : 'TUS NÚMEROS', cx, codesHeadY);
+  const cellW = CW / cols;
+  sale.codes.forEach((code, i) => {
+    const r = Math.floor(i / cols), c = i % cols, x = cx + c * cellW, y = codesY + r * rowH;
+    ctx.fillStyle = th.codeText; ctx.font = `600 ${codeFont}px ${F_MONO}`; ctx.textAlign = cols === 1 ? 'left' : 'center';
+    ctx.fillText(code, cols === 1 ? x : x + cellW / 2, y + rowH * 0.62);
+    ctx.strokeStyle = th.divider; ctx.lineWidth = 2; ctx.setLineDash([3, 6]);
+    ctx.beginPath(); ctx.moveTo(x + (cols === 1 ? 0 : 10), y + rowH - 8); ctx.lineTo(x + cellW - 10, y + rowH - 8); ctx.stroke(); ctx.setLineDash([]);
   });
 
-  drawRoundRect(ctx, 90, qrBoxY, W - 180, 236, 22); ctx.fillStyle = th.inner; ctx.fill();
-  const matrix = QR.generate('CP:' + sale.id), qSize = matrix.length, boxPx = 196;
-  const cell = Math.floor(boxPx / (qSize + 8)), drawPx = cell * qSize, qrBoxX = 112, qrBoxTop = qrBoxY + 20;
-  drawRoundRect(ctx, qrBoxX, qrBoxTop, boxPx, boxPx, 14); ctx.fillStyle = '#ffffff'; ctx.fill();
-  const offsetX = qrBoxX + Math.floor((boxPx - drawPx) / 2), offsetY = qrBoxTop + Math.floor((boxPx - drawPx) / 2);
-  ctx.fillStyle = '#0f172a';
-  for (let r = 0; r < qSize; r++) for (let c = 0; c < qSize; c++) if (matrix[r][c]) ctx.fillRect(offsetX + c * cell, offsetY + r * cell, cell, cell);
+  // franja: emisión + sello
+  ctx.textAlign = 'left'; ctx.fillStyle = th.textMuted; ctx.font = `500 22px ${F_UI}`;
+  const packTxt = sale.packCount > 1 ? `${sale.packCount} packs de ${sale.packQty}` : `Pack de ${sale.qty}`;
+  ctx.fillText(`Emitido ${new Date(sale.createdAt).toLocaleDateString('es-CL')} · ${packTxt}`, cx, bandY + 60);
+  ctx.save(); ctx.translate(cx + CW - 125, bandY + 50); ctx.rotate(-0.2);
+  ctx.strokeStyle = th.accent; ctx.lineWidth = 5; drawRoundRect(ctx, -115, -38, 230, 76, 12); ctx.stroke();
+  ctx.fillStyle = th.accent; ctx.textAlign = 'center'; ctx.font = `800 46px ${F_DISPLAY}`; ctx.fillText('PAGADO', 0, 16);
+  ctx.restore();
 
-  const tx = 336;
-  ctx.textAlign = 'left'; ctx.fillStyle = th.accent; ctx.font = '800 25px system-ui, Roboto, sans-serif';
-  ctx.fillText(`🗓️ Sorteo: ${(contest.drawDate || 'Por definir').slice(0, 32)}`, tx, qrBoxY + 62);
-  ctx.fillStyle = th.textMain; ctx.font = '700 24px system-ui, Roboto, sans-serif';
-  ctx.fillText('Cada código es una opción real.', tx, qrBoxY + 108);
-  ctx.fillStyle = th.textMuted; ctx.font = '600 22px system-ui, Roboto, sans-serif';
-  ctx.fillText('¡Aumenta tus opciones antes del cierre!', tx, qrBoxY + 142);
-  ctx.fillStyle = th.pillText; ctx.font = '800 24px system-ui, Roboto, sans-serif';
-  ctx.fillText((contest.contact || 'ConcursoPro').slice(0, 32), tx, qrBoxY + 186);
-  ctx.fillStyle = th.textMuted; ctx.font = '700 20px ui-monospace, Roboto Mono, monospace';
-  ctx.fillText(`ID VERIFICABLE: ${sale.id}`, tx, qrBoxY + 218);
+  // QR
+  const matrix = QR.generate('CP:' + sale.id), qSize = matrix.length, box = 190;
+  ctx.fillStyle = '#FFFFFF'; drawRoundRect(ctx, cx, qrY, box, box, 10); ctx.fill();
+  ctx.strokeStyle = th.textMain; ctx.lineWidth = 3; ctx.stroke();
+  const cell = Math.floor((box - 24) / qSize), qPx = cell * qSize, ox = cx + Math.floor((box - qPx) / 2), oy = qrY + Math.floor((box - qPx) / 2);
+  ctx.fillStyle = '#16150F';
+  for (let r = 0; r < qSize; r++) for (let c = 0; c < qSize; c++) if (matrix[r][c]) ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell);
+  const tx = cx + box + 30, tw = CW - box - 30;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = th.textMain; ctx.font = `700 26px ${F_UI}`; ctx.fillText(fitText(ctx, 'Escanea para verificar', tw), tx, qrY + 44);
+  ctx.fillStyle = th.textMuted; ctx.font = `500 23px ${F_UI}`; ctx.fillText(fitText(ctx, 'tus números y ver el resultado.', tw), tx, qrY + 80);
+  ctx.fillStyle = th.accent; ctx.font = `700 26px ${F_UI}`; ctx.fillText(fitText(ctx, contest.contact || '', tw), tx, qrY + 132);
+  ctx.fillStyle = th.textMuted; ctx.font = `600 20px ${F_MONO}`; ctx.fillText(fitText(ctx, `ID ${sale.id}`, tw), tx, qrY + 176);
 
   return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png'));
 }
@@ -677,17 +766,27 @@ async function openTicketModal(sale, isSample) {
   const url = URL.createObjectURL(currentTicketBlob), img = document.getElementById('ticketPreviewImg');
   if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
   img.src = url; img.dataset.url = url;
-  document.getElementById('ticketModalTitle').textContent = isSample ? '👁️ Vista previa del diseño' : '🎟️ Ticket listo para enviar';
+  document.getElementById('ticketModalTitle').textContent = isSample ? 'Vista previa del ticket' : `${sale.qty} ${sale.qty === 1 ? 'número emitido' : 'números emitidos'}`;
   document.getElementById('ticketModalActions').classList.toggle('hidden', isSample);
-  const sumEl = document.getElementById('ticketModalSummary');
+  document.getElementById('ticketModalSaleId').textContent = isSample ? '' : 'Venta ' + sale.id;
+  const sumEl = document.getElementById('ticketModalSummary'), codesEl = document.getElementById('ticketCodesPreview');
   if (!isSample) {
     const total = getCustomerStats(c, sale).totalTickets;
-    sumEl.classList.remove('hidden');
-    sumEl.textContent = total > sale.qty ? `🔥 ¡Cliente recurrente! Acumula ${total} tickets en total.` : `✅ Emitido: ${sale.qty} ${sale.qty === 1 ? 'ticket' : 'tickets'} · QR incluido.`;
-  } else sumEl.classList.add('hidden');
+    const packTxt = sale.packCount > 1 ? `${sale.packCount} packs de ${sale.packQty}` : `pack de ${sale.qty}`;
+    sumEl.textContent = `${sale.buyerName} · ${packTxt} · ${formatCLP(sale.amount)}` + (total > sale.qty ? ` · ya suma ${total} números` : '');
+    const shown = sale.codes.slice(0, sale.codes.length > 6 ? 5 : 6);
+    codesEl.innerHTML = shown.map((cd) => `<span>${escapeHtml(cd.replace(/^CN-/, ''))}</span>`).join('') + (sale.codes.length > shown.length ? `<span class="more">+${sale.codes.length - shown.length} más</span>` : '');
+    codesEl.classList.remove('hidden');
+    document.getElementById('btnShareWALabel').textContent = `Enviar a ${sale.buyerName.split(' ')[0]} por WhatsApp`;
+  } else { sumEl.textContent = 'Así verán el ticket tus compradores.'; codesEl.classList.add('hidden'); }
   document.getElementById('ticketModal').classList.add('open');
 }
 function closeTicketModal() { document.getElementById('ticketModal').classList.remove('open'); }
+async function undoCurrentSale() {
+  if (!currentModalSale) return;
+  const id = currentModalSale.id;
+  closeTicketModal(); await deleteSale(id, true);
+}
 
 function buildWhatsAppText(contest, sale) {
   const total = getCustomerStats(contest, sale).totalTickets;
@@ -728,12 +827,12 @@ function renderPrizesList(c) {
   const el = document.getElementById('prizesList');
   if (!c.prizes.length) { el.innerHTML = '<div class="hint" style="margin:0;">Aún no hay premios. Agrega los que vayan llegando.</div>'; return; }
   el.innerHTML = c.prizes.map((p, idx) => `<div class="list-item"><div class="item-main">
-    <div class="item-title">${p.isMajor ? '⭐ ' : ''}${idx + 1}. ${escapeHtml(p.name)}</div>
-    <div class="item-sub">${p.desc ? escapeHtml(p.desc) + ' · ' : ''}${p.winner ? `🏆 Ganador: ${escapeHtml(p.winner.buyerName)} (${escapeHtml(p.winner.code)})` : 'Pendiente por sortear'}</div>
+    <div class="item-title">${idx + 1}. ${escapeHtml(p.name)}${p.isMajor ? ' · Mayor' : ''}</div>
+    <div class="item-sub">${p.desc ? escapeHtml(p.desc) + ' · ' : ''}${p.winner ? `Ganador: ${escapeHtml(p.winner.buyerName)} (${escapeHtml(p.winner.code)})` : 'Pendiente por sortear'}</div>
   </div><div style="display:flex;gap:4px;">
     ${idx > 0 ? `<button class="btn btn-secondary btn-sm" onclick="movePrize(${idx}, -1)">↑</button>` : ''}
     ${idx < c.prizes.length - 1 ? `<button class="btn btn-secondary btn-sm" onclick="movePrize(${idx}, 1)">↓</button>` : ''}
-    ${!p.winner ? `<button class="btn btn-danger btn-sm" onclick="deletePrize(${jsArg(p.id)})">🗑️</button>` : ''}
+    ${!p.winner ? `<button class="btn btn-danger btn-sm" onclick="deletePrize(${jsArg(p.id)})">Quitar</button>` : ''}
   </div></div>`).join('');
 }
 async function movePrize(idx, delta) {
@@ -753,7 +852,7 @@ function toggleSound() { soundEnabled = !soundEnabled; try { localStorage.setIte
 
 function renderDrawTab(c) {
   const sel = document.getElementById('drawPrizeSelect'), pending = c.prizes.filter((p) => !p.winner), prevVal = sel.value;
-  sel.innerHTML = pending.length ? pending.map((p) => `<option value="${escapeHtml(p.id)}">${p.isMajor ? '⭐ ' : ''}${escapeHtml(p.name)}</option>`).join('') : '<option value="">No hay premios pendientes</option>';
+  sel.innerHTML = pending.length ? pending.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}${p.isMajor ? ' (mayor)' : ''}</option>`).join('') : '<option value="">No hay premios pendientes</option>';
   if (pending.some((p) => p.id === prevVal)) sel.value = prevVal;
 
   const activeCount = c.tickets.filter((t) => !t.wonPrizeId).length;
@@ -765,38 +864,38 @@ function renderDrawTab(c) {
   if (isSimMode) {
     poolEl.textContent = `Modo ensayo activo · Tickets activos reales: ${activeCount}`;
     btn.disabled = isDrawing;
-    btn.textContent = isDrawing ? '🧪 ENSAYANDO...' : '🧪 PROBAR SORTEO (SIMULACRO)';
+    btn.textContent = isDrawing ? 'Ensayando…' : 'Probar sorteo (simulacro)';
   } else if (!pending.length) {
     poolEl.textContent = 'Agrega un premio pendiente en la pestaña Premios para sortear.';
     btn.disabled = true;
-    btn.textContent = '🎲 SIN PREMIOS PENDIENTES';
+    btn.textContent = 'Sin premios pendientes';
   } else if (!activeCount) {
     poolEl.textContent = 'No hay tickets activos. Registra ventas o activa Simulacro.';
     btn.disabled = true;
-    btn.textContent = '🎲 SIN TICKETS ACTIVOS';
+    btn.textContent = 'Sin números en juego';
   } else {
     poolEl.textContent = `Tickets activos: ${activeCount} · Premios pendientes: ${pending.length}`;
     btn.disabled = isDrawing;
-    btn.textContent = isDrawing ? '✨ SORTEANDO...' : '🎲 SORTEAR GANADOR';
+    btn.textContent = isDrawing ? 'Sorteando…' : 'Sortear ganador';
   }
 
   const simBtn = document.getElementById('btnSimToggle');
-  simBtn.textContent = isSimMode ? '🧪 Simulacro: ON' : '🧪 Simulacro: OFF';
-  simBtn.className = isSimMode ? 'btn btn-info btn-sm' : 'btn btn-secondary btn-sm'; simBtn.style.flex = '1';
-  document.getElementById('btnSoundToggle').textContent = soundEnabled ? '🔊 Sonido: ON' : '🔇 Silencio';
-  document.getElementById('liveSoundMini').textContent = soundEnabled ? '🔊' : '🔇';
+  simBtn.textContent = isSimMode ? 'Simulacro: sí' : 'Simulacro: no';
+  simBtn.className = isSimMode ? 'btn btn-gold btn-sm' : 'btn btn-secondary btn-sm';
+  document.getElementById('btnSoundToggle').textContent = soundEnabled ? 'Sonido: sí' : 'Sonido: no';
+  document.getElementById('liveSoundMini').textContent = soundEnabled ? '♪' : '–';
   document.getElementById('liveStage').classList.toggle('sim-mode', isSimMode);
   document.getElementById('simRibbon').classList.toggle('hidden', !isSimMode);
-  document.getElementById('liveContestBadge').textContent = (isSimMode ? 'PRUEBA · ' : '') + c.name.toUpperCase();
+  document.getElementById('liveContestBadge').textContent = (isSimMode ? 'Prueba · ' : '') + c.name;
   updateLiveStageHeader();
 
   const winners = c.prizes.filter((p) => p.winner);
   document.getElementById('btnUndoLastWinner').classList.toggle('hidden', !winners.length || isSimMode);
   document.getElementById('winnersList').innerHTML = winners.length ? winners.map((p) => `<div class="list-item"><div class="item-main">
-    <div class="item-title">${p.isMajor ? '⭐ ' : ''}🏆 ${escapeHtml(p.name)}</div>
+    <div class="item-title">${escapeHtml(p.name)}${p.isMajor ? ' · Mayor' : ''}</div>
     <div class="item-sub">${escapeHtml(p.winner.buyerName)} ${cleanRut(p.winner.buyerRut) ? '(' + maskRut(p.winner.buyerRut) + ')' : ''}</div>
     <div class="code-chips"><span class="chip winner">${escapeHtml(p.winner.code)}</span></div>
-  </div>${p.winner.buyerPhone ? `<button class="btn btn-primary btn-sm" onclick="contactWinner(${jsArg(p.id)})">💬 WA</button>` : ''}</div>`).join('') : '<div class="hint" style="margin:0;">Todavía no se ha sorteado ningún premio.</div>';
+  </div>${p.winner.buyerPhone ? `<button class="btn btn-primary btn-sm" onclick="contactWinner(${jsArg(p.id)})">WhatsApp</button>` : ''}</div>`).join('') : '<div class="hint" style="margin:0;">Todavía no se ha sorteado ningún premio.</div>';
 }
 
 async function undoLastWinner() {
@@ -819,7 +918,7 @@ async function undoLastWinner() {
 function updateLiveStageHeader() {
   if (isDrawing) return;
   const c = getActiveContest(), prize = c.prizes.find((p) => p.id === document.getElementById('drawPrizeSelect').value);
-  document.getElementById('livePrizeName').textContent = prize ? (prize.isMajor ? '⭐ ' : '🎁 ') + prize.name : (isSimMode ? '🎁 Premio de Ensayo' : 'Sin premios pendientes');
+  document.getElementById('livePrizeName').textContent = prize ? prize.name : (isSimMode ? 'Premio de ensayo' : 'Sin premios pendientes');
 }
 function toggleLiveFullscreen() {
   const active = document.body.classList.toggle('live-fullscreen');
@@ -843,7 +942,7 @@ function startLiveDraw() {
     ];
   }
   isDrawing = true;
-  const btn = document.getElementById('btnStartDraw'); btn.disabled = true; btn.textContent = isSimMode ? '🧪 ENSAYANDO...' : '✨ SORTEANDO...';
+  const btn = document.getElementById('btnStartDraw'); btn.disabled = true; btn.textContent = isSimMode ? 'Ensayando…' : 'Sorteando…';
   const winnerTicket = activePool[secureRandomInt(activePool.length)];
   const codeEl = document.getElementById('rouletteCode'), winEl = document.getElementById('rouletteWinner'), rutEl = document.getElementById('rouletteRut');
   winEl.textContent = 'Buscando ganador...'; rutEl.textContent = '';
@@ -866,12 +965,12 @@ async function finalizeWinner(c, prize, ticket) {
     c.unsavedChanges = (c.unsavedChanges || 0) + 1; await saveContest(c);
   }
   document.getElementById('rouletteCode').textContent = ticket.code;
-  document.getElementById('rouletteWinner').textContent = (isSimMode ? '🧪 ' : '🎉 ') + ticket.buyerName;
+  document.getElementById('rouletteWinner').textContent = ticket.buyerName;
   document.getElementById('rouletteRut').textContent = isSimMode ? 'SIMULACRO — No guardado en el concurso' : (cleanRut(ticket.buyerRut) ? 'RUT: ' + maskRut(ticket.buyerRut) : '');
   playWinFanfare(); launchConfetti();
   isDrawing = false;
   const btn = document.getElementById('btnStartDraw'); btn.disabled = false;
-  btn.textContent = isSimMode ? '🧪 PROBAR OTRO SIMULACRO' : '🎲 SORTEAR SIGUIENTE PREMIO';
+  btn.textContent = isSimMode ? 'Probar otro simulacro' : 'Sortear siguiente premio';
   renderAll();
 }
 
@@ -928,20 +1027,20 @@ function verifyCode(overrideVal) {
   if (sale) {
     const total = getCustomerStats(c, sale).totalTickets, saleTickets = c.tickets.filter((t) => t.saleId === sale.id);
     box.innerHTML = `<div style="background:var(--bg);border:1px solid var(--primary);padding:11px;border-radius:10px;">
-      <div style="color:var(--primary);font-weight:800;">✅ COMPROBANTE VÁLIDO (${escapeHtml(sale.id)})</div>
+      <div style="color:var(--primary);font-weight:800;">Comprobante válido (${escapeHtml(sale.id)})</div>
       <div>Titular: <strong>${escapeHtml(sale.buyerName)}</strong> (${escapeHtml(rutOrDash(sale.buyerRut))})</div>
       <div>${sale.packCount > 1 ? sale.packCount + ' packs · ' : 'Pack '}x${sale.qty} (${formatCLP(sale.amount)}) · Total cliente: <strong>${total} tickets</strong></div>
       <div class="code-chips">${saleTickets.map((t) => { const wp = t.wonPrizeId ? c.prizes.find((p) => p.id === t.wonPrizeId) : null; return `<span class="chip ${wp ? 'winner' : ''}">${escapeHtml(t.code)}${wp ? ' 🏆' : ''}</span>`; }).join('')}</div></div>`;
     return;
   }
   const t = c.tickets.find((x) => x.code.toUpperCase() === raw);
-  if (!t) { box.innerHTML = `<span style="color:#fca5a5;font-weight:700;">❌ "${escapeHtml(raw)}" no existe en este concurso.</span>`; return; }
+  if (!t) { box.innerHTML = `<span style="color:#B42318;font-weight:700;">"${escapeHtml(raw)}" no existe en este concurso.</span>`; return; }
   const wonPrize = t.wonPrizeId ? c.prizes.find((p) => p.id === t.wonPrizeId) : null, total = getCustomerStats(c, t).totalTickets;
   box.innerHTML = `<div style="background:var(--bg);border:1px solid var(--primary);padding:11px;border-radius:10px;">
-    <div style="color:var(--primary);font-weight:800;">✅ CÓDIGO VÁLIDO: ${escapeHtml(t.code)}</div>
+    <div style="color:var(--primary);font-weight:800;">Número válido: ${escapeHtml(t.code)}</div>
     <div>Titular: <strong>${escapeHtml(t.buyerName)}</strong> (${escapeHtml(rutOrDash(t.buyerRut))})</div>
     <div>Total acumulado: <strong>${total} ${total === 1 ? 'ticket' : 'tickets'}</strong></div>
-    <div>Estado: ${wonPrize ? `🏆 Ya ganó "${escapeHtml(wonPrize.name)}"` : '🟢 Activo participando'}</div></div>`;
+    <div>Estado: ${wonPrize ? `Ya ganó "${escapeHtml(wonPrize.name)}"` : 'Participando'}</div></div>`;
 }
 
 async function openQrScanner() {
@@ -972,7 +1071,7 @@ function renderSettingsTab(c) {
   document.getElementById('editContestName').value = c.name;
   document.getElementById('editContestDate').value = c.drawDate || '';
   document.getElementById('editContestContact').value = c.contact || '';
-  document.getElementById('themePicker').innerHTML = Object.entries(TICKET_THEMES).map(([key, th]) => `<button type="button" class="theme-opt ${(c.theme || 'classic') === key ? 'active' : ''}" onclick="selectTheme('${key}')"><span class="swatch" style="background:${th.swatch};"></span><span>${escapeHtml(th.name)}</span></button>`).join('');
+  document.getElementById('themePicker').innerHTML = Object.entries(TICKET_THEMES).map(([key, th]) => `<button type="button" class="theme-opt ${(c.theme || 'talonario') === key ? 'active' : ''}" onclick="selectTheme('${key}')"><span class="swatch" style="background:${th.swatch};"></span><span>${escapeHtml(th.name)}</span></button>`).join('');
   const wrap = document.getElementById('logoPreviewWrap');
   if (c.logoDataUrl) { wrap.classList.remove('hidden'); document.getElementById('logoPreviewThumb').src = c.logoDataUrl; document.getElementById('logoSizeInfo').textContent = `Logo activo (${Math.round(c.logoDataUrl.length / 1024)} KB)`; }
   else wrap.classList.add('hidden');
@@ -984,9 +1083,9 @@ async function createNewContest() {
   const packs = [
     { qty: parseInt(document.getElementById('p1Qty').value, 10) || 1, price: parseInt(document.getElementById('p1Price').value, 10) || 2000, badge: '' },
     { qty: parseInt(document.getElementById('p2Qty').value, 10) || 3, price: parseInt(document.getElementById('p2Price').value, 10) || 5000, badge: 'Pack Ahorro' },
-    { qty: parseInt(document.getElementById('p3Qty').value, 10) || 8, price: parseInt(document.getElementById('p3Price').value, 10) || 10000, badge: '🔥 Más elegido' }
+    { qty: parseInt(document.getElementById('p3Qty').value, 10) || 8, price: parseInt(document.getElementById('p3Price').value, 10) || 10000, badge: 'Más vendido' }
   ];
-  const nc = { id: 'c_' + Date.now(), name, drawDate: document.getElementById('newContestDate').value.trim() || 'Por definir', contact: document.getElementById('newContestContact').value.trim() || '', theme: 'classic', logoDataUrl: '', createdAt: new Date().toISOString(), unsavedChanges: 0, packs, prizes: [], sales: [], tickets: [] };
+  const nc = { id: 'c_' + Date.now(), name, drawDate: document.getElementById('newContestDate').value.trim() || 'Por definir', contact: document.getElementById('newContestContact').value.trim() || '', theme: 'talonario', logoDataUrl: '', createdAt: new Date().toISOString(), unsavedChanges: 0, packs, prizes: [], sales: [], tickets: [] };
   contests.push(nc); await saveContest(nc); activeContestId = nc.id; try { localStorage.setItem('concursopro_active_id', nc.id); } catch {}
   document.getElementById('newContestName').value = ''; renderAll(); showToast('Nuevo concurso creado');
 }
@@ -1021,7 +1120,7 @@ async function importContestJson(e) {
   try {
     const data = JSON.parse(await file.text());
     if (!data.id || !data.name || !Array.isArray(data.tickets)) return showToast('Archivo no válido');
-    if (!data.theme) data.theme = 'classic'; data.unsavedChanges = 0;
+    if (!data.theme) data.theme = 'talonario'; data.unsavedChanges = 0;
     const existing = contests.find((x) => x.id === data.id);
     if (existing) {
       const nowSales = existing.sales.length, bkSales = (data.sales || []).length;

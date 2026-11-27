@@ -4,8 +4,8 @@
   "description": "Emisión de tickets virtuales PNG y sorteos en vivo desde Android.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#EEEBE3",
+  "theme_color": "#F6F4EE",
   "orientation": "portrait",
   "icons": [
     {

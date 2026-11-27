@@ -3,367 +3,444 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#F6F4EE" />
   <title>ConcursoPro</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" />
   <style>
     :root {
-      --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8;
-      --primary: #10b981; --gold: #f59e0b; --danger: #ef4444; --info: #38bdf8;
+      --paper: #EEEBE3; --surface: #FBFAF6; --bar: #F6F4EE; --line: #D8D3C6;
+      --ink: #16150F; --muted: #5E5B52; --faint: #8A867B;
+      --red: #D9311C; --yellow: #F5D547; --night: #0E0E0C; --night-2: #2A2822;
+      --ok: #1F7A3F;
+      --display: 'Bricolage Grotesque', system-ui, sans-serif;
+      --ui: 'Instrument Sans', system-ui, sans-serif;
+      --mono: 'IBM Plex Mono', ui-monospace, monospace;
+      /* alias usados por app.js */
+      --bg: var(--surface); --primary: var(--ok);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, Roboto, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 84px; }
+    body { margin: 0; font-family: var(--ui); background: var(--paper); color: var(--ink); padding-bottom: 88px; -webkit-tap-highlight-color: transparent; }
+    body.tab-vender { padding-bottom: 170px; }
     .hidden { display: none !important; }
+    .mono { font-family: var(--mono); font-weight: 600; }
+    svg.ic { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    svg.ic-sm { width: 16px; height: 16px; }
 
-    header.app-header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .hdr-title { font-size: 17px; font-weight: 800; margin: 0; }
-    .hdr-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .revenue-pill { background: rgba(16,185,129,.12); border: 1px solid var(--border); color: var(--primary); font-weight: 800; padding: 6px 12px; border-radius: 999px; font-size: 14px; white-space: nowrap; }
+    /* Encabezado */
+    header.app-header { position: sticky; top: 0; z-index: 20; background: var(--bar); border-bottom: 1px solid var(--line); padding: 14px 18px 12px; }
+    .hdr-switch { display: flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-align: left; max-width: 100%; }
+    .hdr-title { font-family: var(--display); font-weight: 800; font-size: 21px; letter-spacing: -0.02em; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hdr-stats { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 13px; color: var(--muted); margin-top: 6px; align-items: center; }
+    .hdr-stats b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
 
-    .banner { margin: 10px 14px 0; background: rgba(245,158,11,.12); border: 1px solid var(--gold); color: #fde68a; padding: 9px 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+    .banner { margin: 12px 16px 0; background: var(--yellow); color: var(--ink); padding: 8px 8px 8px 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
 
-    main { padding: 12px 14px; max-width: 720px; margin: 0 auto; }
+    main { padding: 16px; max-width: 640px; margin: 0 auto; display: block; }
     .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .tab-panel.active { display: flex; flex-direction: column; gap: 16px; }
 
-    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 6px; text-align: center; }
-    .kpi b { display: block; font-size: 22px; }
-    .kpi span { font-size: 12px; color: var(--muted); }
+    /* Tarjetas y campos */
+    .card { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .card-title, .section-title { font-family: var(--ui); font-size: 16px; font-weight: 700; margin: 0; }
+    .section { display: flex; flex-direction: column; gap: 10px; }
+    label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+    input, select, textarea { width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font-size: 16px; font-family: var(--ui); }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; }
+    input::placeholder, textarea::placeholder { color: var(--faint); }
+    textarea { min-height: 84px; resize: vertical; }
+    input[type="checkbox"] { width: 22px; min-height: 22px; height: 22px; accent-color: var(--red); }
+    input[type="file"] { font-size: 14px; }
+    .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .check-row { flex-direction: row; align-items: center; gap: 10px; font-size: 15px; color: var(--ink); font-weight: 600; }
+    .hint { font-size: 13px; color: var(--muted); margin: 0; display: flex; gap: 6px; align-items: flex-start; line-height: 1.4; }
+    .hint.ok { color: var(--ok); }
+    .hint.warn { color: #8A4B00; }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
-    .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .card-title { font-size: 15px; font-weight: 800; margin: 0; }
-    label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 5px; }
-    input, select, textarea { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit; }
-    textarea { min-height: 70px; resize: vertical; }
-    input[type="checkbox"] { width: auto; }
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .check-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: 700; font-size: 14px; }
-
-    .hint { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
-    .hint.ok { color: #34d399; }
-    .hint.warn { color: #fbbf24; }
-
-    .btn { border: none; border-radius: 12px; padding: 12px 14px; font-weight: 800; font-size: 15px; cursor: pointer; font-family: inherit; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    /* Botones */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 15px; cursor: pointer; font-family: var(--ui); text-decoration: none; color: var(--ink); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
     .btn-block { width: 100%; }
-    .btn-primary { background: var(--primary); color: #052e16; }
-    .btn-gold { background: var(--gold); color: #1f1300; }
-    .btn-secondary { background: #273449; color: var(--text); border: 1px solid var(--border); }
-    .btn-danger { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.4); }
-    .btn-info { background: rgba(56,189,248,.15); color: #7dd3fc; border: 1px solid rgba(56,189,248,.4); }
-    .btn-sm { padding: 7px 10px; font-size: 13px; border-radius: 9px; }
-    .btn-row { display: flex; gap: 8px; margin-top: 8px; }
-    .btn-row > * { flex: 1; }
+    .btn-primary { background: var(--red); color: #fff; }
+    .btn-dark { background: var(--ink); color: #fff; }
+    .btn-gold { background: var(--yellow); color: var(--ink); }
+    .btn-secondary { background: var(--surface); border: 1.5px solid var(--line); }
+    .btn-danger { background: var(--surface); border: 1.5px solid var(--line); color: var(--red); }
+    .btn-info { background: var(--ink); color: #fff; }
+    .btn-sm { min-height: 40px; padding: 6px 12px; font-size: 14px; border-radius: 10px; }
+    .btn-link { background: none; border: none; color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: underline; padding: 10px; cursor: pointer; font-family: var(--ui); }
+    .btn-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 
-    details.quick { border: 1px dashed var(--border); border-radius: 12px; padding: 8px 10px; margin-bottom: 6px; }
-    details.quick summary { color: var(--info); font-weight: 700; font-size: 13px; cursor: pointer; }
+    /* Vender */
+    .paste-card { background: var(--ink); color: var(--bar); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .paste-card textarea { background: var(--night-2); border-color: var(--night-2); color: #EDEAE2; font-family: var(--mono); font-size: 14px; }
+    .paste-card textarea::placeholder { color: #A29E92; }
+    .paste-card .btn-row .btn-secondary { background: transparent; border-color: #4A473F; color: var(--bar); }
 
-    .packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-    .pack-btn { position: relative; background: var(--bg); border: 2px solid var(--border); color: var(--text); border-radius: 12px; padding: 16px 4px 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; }
-    .pack-btn.selected { border-color: var(--primary); background: rgba(16,185,129,.12); }
-    .pack-btn.featured.selected { border-color: var(--gold); background: rgba(245,158,11,.12); }
-    .pack-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #1f1300; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
-    .pack-qty { font-size: 18px; font-weight: 900; }
-    .pack-price { color: var(--primary); font-weight: 800; }
-    .pack-unit { font-size: 10px; color: var(--muted); }
+    .packs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 8px; }
+    .pack-btn { position: relative; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink); border-radius: 10px; padding: 14px 4px 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--ui); }
+    .pack-btn.selected { background: #fff; border: 2.5px solid var(--red); padding: 13px 3px 9px; }
+    .pack-badge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; max-width: 96%; overflow: hidden; text-overflow: ellipsis; }
+    .pack-btn.selected .pack-badge { background: var(--red); }
+    .pack-qty { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; }
+    .pack-qty::before { content: '×'; font-size: 16px; margin-right: 1px; color: var(--muted); }
+    .pack-price { font-family: var(--mono); font-weight: 600; font-size: 14px; border-top: 1.5px dashed var(--line); width: 100%; text-align: center; padding-top: 6px; margin-top: 6px; }
+    .pack-unit { font-size: 11px; color: var(--muted); }
 
-    .stepper { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; }
-    .stepper input { text-align: center; font-size: 18px; font-weight: 800; }
-    .returning { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.4); border-radius: 10px; padding: 8px 10px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .badge-count { font-size: 12px; color: var(--muted); font-weight: 700; }
+    .stepper { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 5px 5px 5px 14px; }
+    .stepper span.lbl { font-size: 15px; font-weight: 600; }
+    .stepper .ctrl { display: flex; align-items: center; gap: 4px; }
+    .stepper button { width: 44px; height: 44px; border-radius: 8px; border: none; background: var(--paper); font-size: 22px; font-weight: 700; color: var(--ink); cursor: pointer; }
+    .stepper button.plus { background: var(--ink); color: #fff; }
+    .stepper input { width: 52px; min-height: 44px; text-align: center; font-family: var(--mono); font-weight: 600; font-size: 20px; border: none; background: transparent; padding: 0; }
 
-    .list-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .returning { background: #FFF6CF; border: 1.5px solid var(--yellow); border-radius: 10px; padding: 8px 10px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+    .sale-bar { position: fixed; left: 0; right: 0; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 25; background: var(--bar); border-top: 1px solid var(--line); padding: 10px 16px; display: none; align-items: center; gap: 12px; }
+    body.tab-vender .sale-bar { display: flex; }
+    .sale-bar .total { display: flex; flex-direction: column; min-width: 86px; }
+    .sale-bar .total b { font-family: var(--mono); font-weight: 600; font-size: 20px; }
+    .sale-bar .total span { font-size: 12px; color: var(--muted); }
+    .sale-bar .btn { flex: 1; min-height: 54px; font-size: 16px; }
+
+    /* Listas */
+    .list-item { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .item-main { min-width: 0; flex: 1; }
-    .item-title { font-weight: 800; font-size: 14px; }
-    .item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .code-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-    .chip { font-family: ui-monospace, monospace; font-size: 12px; background: #172033; border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; }
-    .chip.winner { border-color: var(--gold); color: #fde68a; }
+    .item-title { font-weight: 700; font-size: 15px; }
+    .item-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .code-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .chip { font-family: var(--mono); font-weight: 600; font-size: 12px; background: var(--paper); border-radius: 6px; padding: 4px 7px; }
+    .chip.winner { background: var(--yellow); }
+    .badge-count { font-size: 13px; color: var(--muted); font-weight: 600; }
 
-    .live-stage { position: relative; border: 2px solid var(--gold); border-radius: 18px; padding: 18px 14px; text-align: center; background: radial-gradient(circle at top, #1e293b, #0b1120); overflow: hidden; margin-bottom: 14px; }
-    .live-stage.sim-mode { border-color: var(--info); }
-    .live-badge { display: inline-block; border: 1px solid var(--gold); color: #fde68a; background: rgba(245,158,11,.12); font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
-    .live-prize { font-size: 22px; font-weight: 900; margin: 12px 0; }
-    .roulette { background: #0b1120; border: 1px solid var(--border); border-radius: 14px; padding: 18px 8px; margin-bottom: 14px; }
-    .roulette-code { font-family: ui-monospace, monospace; font-size: 34px; font-weight: 900; color: var(--gold); letter-spacing: .06em; }
-    .roulette-winner { font-size: 18px; font-weight: 800; color: #34d399; margin-top: 8px; }
-    .roulette-rut { font-size: 13px; color: var(--muted); margin-top: 4px; }
-    .sim-ribbon { position: absolute; top: 10px; right: -34px; transform: rotate(35deg); background: var(--info); color: #082f49; font-weight: 900; font-size: 11px; padding: 3px 40px; }
-    .live-mini { position: absolute; top: 12px; left: 12px; font-size: 20px; cursor: pointer; }
-    .exit-live { position: fixed; top: 14px; right: 14px; z-index: 60; }
-    body.live-fullscreen header.app-header, body.live-fullscreen nav.bottom-nav, body.live-fullscreen .banner, body.live-fullscreen #tab-sorteo > :not(.live-stage) { display: none !important; }
-    body.live-fullscreen .live-stage { position: fixed; inset: 0; z-index: 50; border-radius: 0; margin: 0; display: flex; flex-direction: column; justify-content: center; }
-    body.live-fullscreen .roulette-code { font-size: 52px; }
-    body.live-fullscreen .live-prize { font-size: 30px; }
+    /* Sorteo en vivo */
+    .live-stage { position: relative; background: var(--night); color: #F6F4EE; border-radius: 18px; padding: 20px 18px 18px; overflow: hidden; display: flex; flex-direction: column; gap: 16px; }
+    .live-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .live-org { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--red); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .08em; padding: 5px 10px; border-radius: 999px; flex: none; }
+    .live-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+    .live-stage.sim-mode .live-pill { background: #4A473F; }
+    .live-kicker { font-size: 13px; font-weight: 700; color: var(--yellow); letter-spacing: .06em; }
+    .live-prize { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.05; letter-spacing: -0.02em; margin: 4px 0 0; }
+    .win-ticket { position: relative; background: var(--yellow); color: var(--night); border-radius: 16px; padding: 22px 14px 18px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+    .win-ticket::before, .win-ticket::after { content: ''; position: absolute; top: 50%; width: 24px; height: 24px; margin-top: -12px; border-radius: 50%; background: var(--night); }
+    .win-ticket::before { left: -12px; } .win-ticket::after { right: -12px; }
+    .win-label { font-size: 12px; font-weight: 700; letter-spacing: .1em; }
+    .roulette-code { font-family: var(--mono); font-weight: 600; font-size: clamp(26px, 10vw, 48px); line-height: 1; letter-spacing: .02em; white-space: nowrap; }
+    .win-ticket hr { width: 100%; border: none; border-top: 2px dashed var(--night); margin: 0; }
+    .roulette-winner { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1.1; }
+    .roulette-rut { font-size: 13px; font-weight: 600; min-height: 16px; }
+    .live-stage .btn-gold { min-height: 56px; font-size: 17px; font-weight: 800; }
+    .sim-ribbon { position: absolute; top: 14px; right: -38px; transform: rotate(35deg); background: var(--yellow); color: var(--night); font-weight: 800; font-size: 11px; padding: 3px 44px; z-index: 2; }
+    .live-mini { background: none; border: 1px solid #3A3832; color: #F6F4EE; border-radius: 999px; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+    .exit-live { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 14px; z-index: 60; background: #2A2822; color: #F6F4EE; border: none; }
+    body.live-fullscreen { padding-bottom: 0; background: var(--night); }
+    body.live-fullscreen header.app-header, body.live-fullscreen nav.bottom-nav, body.live-fullscreen .banner, body.live-fullscreen .sale-bar, body.live-fullscreen #tab-sorteo > :not(.live-stage) { display: none !important; }
+    body.live-fullscreen main { padding: 0; max-width: none; }
+    body.live-fullscreen .live-stage { position: fixed; inset: 0; z-index: 50; border-radius: 0; padding: calc(72px + env(safe-area-inset-top)) 22px calc(26px + env(safe-area-inset-bottom)); justify-content: space-between; max-width: 540px; margin: 0 auto; }
+    body.live-fullscreen .live-prize { font-size: 40px; }
+    body.live-fullscreen .roulette-code { font-size: clamp(30px, 11.5vw, 60px); }
 
-    .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .theme-opt { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 2px solid var(--border); color: var(--text); border-radius: 12px; padding: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
-    .theme-opt.active { border-color: var(--primary); }
-    .swatch { width: 20px; height: 20px; border-radius: 50%; flex: none; }
-    .logo-preview { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-    .logo-preview img { width: 54px; height: 54px; object-fit: contain; border-radius: 8px; background: #fff; }
+    .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .theme-opt { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink); border-radius: 10px; min-height: 46px; padding: 8px 10px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: var(--ui); }
+    .theme-opt.active { border: 2.5px solid var(--ink); }
+    .swatch { width: 20px; height: 20px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.15); }
+    .logo-preview { display: flex; align-items: center; gap: 10px; }
+    .logo-preview img { width: 54px; height: 54px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid var(--line); }
+    details.more summary { cursor: pointer; font-weight: 700; color: var(--ink); padding: 6px 0; }
 
-    nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: #0b1120; border-top: 1px solid var(--border); }
-    .nav-btn { background: none; border: none; color: var(--muted); font-size: 12px; font-weight: 700; padding: 6px 0; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: inherit; }
-    .nav-btn .ic { font-size: 20px; }
-    .nav-btn.active { background: rgba(16,185,129,.14); color: var(--primary); }
+    /* Navegación inferior */
+    nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px 6px calc(8px + env(safe-area-inset-bottom)); background: var(--ink); }
+    .nav-btn { background: none; border: none; color: #B9B4A6; font-size: 12px; font-weight: 600; min-height: 52px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-family: var(--ui); }
+    .nav-btn.active { color: var(--yellow); }
 
-    .modal { position: fixed; inset: 0; z-index: 70; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; padding: 14px; }
+    /* Venta lista (pantalla completa) */
+    .modal { position: fixed; inset: 0; z-index: 70; background: rgba(14,14,12,.7); display: none; align-items: flex-end; justify-content: center; }
     .modal.open { display: flex; }
-    .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; }
-    .modal-box img { width: 100%; border-radius: 10px; display: block; margin: 10px 0; }
-    #qrVideo { width: 100%; border-radius: 10px; background: #000; margin: 10px 0; }
+    .modal-box { background: var(--paper); width: 100%; max-width: 540px; max-height: 100%; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 16px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
+    .sheet-top { display: flex; justify-content: space-between; align-items: center; }
+    .icon-btn { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--bar); border: 1px solid var(--line); color: var(--ink); cursor: pointer; }
+    .done-title { display: flex; align-items: center; gap: 10px; }
+    .done-title .tick { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--yellow); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+    .done-title h2 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: -0.02em; line-height: 1.1; }
+    .ticket-img { width: 100%; max-height: 46vh; object-fit: contain; border-radius: 10px; background: var(--night-2); display: block; }
+    .codes-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .codes-preview span { font-family: var(--mono); font-weight: 600; font-size: 13px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 0; text-align: center; }
+    .codes-preview span.more { font-family: var(--ui); font-weight: 600; color: var(--muted); border-style: dashed; background: var(--bar); }
+    .btn-wa { min-height: 58px; font-size: 17px; }
+    #qrVideo { width: 100%; border-radius: 10px; background: #000; }
 
-    #toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: #f8fafc; color: #0f172a; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 14px; z-index: 90; display: none; box-shadow: 0 6px 20px rgba(0,0,0,.4); max-width: 90vw; text-align: center; }
+    #toast { position: fixed; left: 50%; bottom: 180px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; z-index: 90; display: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: 90vw; text-align: center; }
     #confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 80; display: none; }
   </style>
 </head>
-<body>
+<body class="tab-vender">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M14 7v10" stroke-dasharray="2 2"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12M12 8c-1.5-3-5-3-5-1s3 1 5 1zm0 0c1.5-3 5-3 5-1s-3 1-5 1z"/></symbol>
+    <symbol id="i-draw" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
+    <symbol id="i-wa" viewBox="0 0 24 24"><path d="M4 20l1.4-4A8 8 0 1 1 12 20a8 8 0 0 1-3.9-1z"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 9a4 4 0 0 1 0 6"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  </svg>
+
   <header class="app-header">
-    <div>
-      <h1 class="hdr-title" id="hdrContestName">Cargando...</h1>
-      <div class="hdr-sub" id="hdrContestDate">Sorteo: Por definir</div>
+    <button type="button" class="hdr-switch" onclick="openContestSwitcher()" aria-label="Cambiar de concurso">
+      <h1 class="hdr-title" id="hdrContestName">Cargando…</h1>
+      <svg class="ic ic-sm"><use href="#i-down"/></svg>
+    </button>
+    <div class="hdr-stats">
+      <span><b id="kpiTickets">0</b> números</span><span aria-hidden="true">·</span>
+      <span><b id="hdrRevenue">$0</b></span><span aria-hidden="true">·</span>
+      <span id="hdrContestDate">Sorteo: Por definir</span>
+      <span class="hidden" id="kpiSales">0</span><span class="hidden" id="kpiPrizes">0</span>
     </div>
-    <div class="revenue-pill" id="hdrRevenue">$0</div>
   </header>
 
   <div class="banner hidden" id="backupBanner">
-    <span id="backupBannerText">⚠️ Cambios sin respaldar</span>
-    <button class="btn btn-gold btn-sm" onclick="exportContestJson()">Respaldar</button>
+    <span id="backupBannerText">Cambios sin respaldar</span>
+    <button class="btn btn-dark btn-sm" onclick="exportContestJson()">Respaldar</button>
   </div>
 
   <main>
     <!-- ============ VENDER ============ -->
     <section class="tab-panel active" id="tab-vender">
-      <div class="kpis">
-        <div class="kpi"><b id="kpiSales">0</b><span>Ventas</span></div>
-        <div class="kpi"><b id="kpiTickets">0</b><span>Tickets</span></div>
-        <div class="kpi"><b id="kpiPrizes">0</b><span>Premios</span></div>
+      <div class="paste-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span class="card-title">Pegar mensaje del cliente</span>
+          <span style="font-size:12px;color:#B9B4A6;">WhatsApp</span>
+        </div>
+        <textarea id="quickPasteBox" aria-label="Mensaje del cliente" placeholder="Pega aquí lo que te escribió: nombre, WhatsApp, RUT, pack…"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-gold" onclick="applyQuickPaste()">Leer mensaje</button>
+          <button class="btn btn-secondary" onclick="copySalesTemplate()">Copiar precios</button>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="card-head">
-          <h2 class="card-title">⚡ Nueva Venta</h2>
-          <button class="btn btn-secondary btn-sm" onclick="copySalesTemplate()">📋 Plantilla WA</button>
-        </div>
-
-        <details class="quick">
-          <summary>📥 Pegado rápido desde WhatsApp (toca aquí)</summary>
-          <textarea id="quickPasteBox" placeholder="Pega aquí Nombre, RUT, WhatsApp o Pack..." style="margin-top:8px;"></textarea>
-          <button class="btn btn-secondary btn-block btn-sm" style="margin-top:8px;" onclick="applyQuickPaste()">Rellenar campos automáticamente</button>
-        </details>
-
-        <label>Elige el pack</label>
+      <div class="section">
+        <span class="section-title">Pack</span>
         <div class="packs" id="packsContainer"></div>
-
-        <label for="packCountInput">¿Cuántos packs compra?</label>
         <div class="stepper">
-          <button type="button" class="btn btn-secondary" onclick="changePackCount(-1)">−</button>
-          <input id="packCountInput" type="number" min="1" max="50" value="1" inputmode="numeric" oninput="setPackCount(this.value)" />
-          <button type="button" class="btn btn-secondary" onclick="changePackCount(1)">+</button>
-        </div>
-        <div class="hint" id="packCountSummary"></div>
-
-        <label for="buyerName">Nombre completo</label>
-        <input id="buyerName" placeholder="Ej: Camila Rojas" autocomplete="off" />
-
-        <div class="row2">
-          <div>
-            <label for="buyerRut">RUT (opcional)</label>
-            <input id="buyerRut" placeholder="18.456.789-2" oninput="onRutInput()" autocomplete="off" />
-          </div>
-          <div>
-            <label for="buyerPhone">WhatsApp</label>
-            <input id="buyerPhone" placeholder="+56912345678" inputmode="tel" autocomplete="off" />
+          <span class="lbl">Cantidad de packs</span>
+          <div class="ctrl">
+            <button type="button" onclick="changePackCount(-1)" aria-label="Quitar un pack">−</button>
+            <input id="packCountInput" type="number" min="1" max="120" value="1" inputmode="numeric" aria-label="Cantidad de packs" oninput="setPackCount(this.value)" />
+            <button type="button" class="plus" onclick="changePackCount(1)" aria-label="Agregar un pack">+</button>
           </div>
         </div>
-        <div class="hint" id="rutHint">RUT opcional. Sin RUT, el cliente se reconoce por su WhatsApp. Verifica el abono en tu banco antes de emitir.</div>
+        <p class="hint hidden" id="packCountSummary"></p>
+      </div>
+
+      <div class="section">
+        <span class="section-title">Comprador</span>
         <div class="returning hidden" id="returningCustomerBox"></div>
-
-        <button class="btn btn-primary btn-block" id="btnCreateSale" onclick="createSale()">🎟️ Confirmar pago y generar ticket</button>
+        <label>Nombre<input id="buyerName" placeholder="Ej: Camila Rojas" autocomplete="off" /></label>
+        <div class="row2">
+          <label>WhatsApp<input id="buyerPhone" placeholder="+56 9 1234 5678" inputmode="tel" autocomplete="off" /></label>
+          <label>RUT (opcional)<input id="buyerRut" placeholder="12.345.678-9" oninput="onRutInput()" autocomplete="off" /></label>
+        </div>
+        <p class="hint" id="rutHint">Confirma la transferencia en tu banco antes de emitir.</p>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <h2 class="card-title">🧾 Ventas recientes</h2>
+          <h2 class="card-title">Ventas recientes</h2>
           <span class="badge-count" id="salesCountBadge">0 ventas</span>
         </div>
-        <input id="salesSearch" placeholder="Buscar por nombre, RUT, ID o código..." oninput="renderSalesList()" />
+        <input id="salesSearch" aria-label="Buscar ventas" placeholder="Buscar por nombre, RUT, WhatsApp o número" oninput="renderSalesList()" />
         <div id="salesList"></div>
       </div>
     </section>
 
     <!-- ============ PREMIOS ============ -->
     <section class="tab-panel" id="tab-premios">
-      <div class="card">
-        <h2 class="card-title">🎁 Agregar premio al concurso</h2>
-        <label for="prizeName">Nombre del premio</label>
-        <input id="prizeName" placeholder="Ej: Parlante JBL / Giftcard $50.000" />
-        <label for="prizeDesc">Detalle o auspiciador (opcional)</label>
-        <input id="prizeDesc" placeholder="Ej: Entregado por Tienda X" />
-        <div class="check-row"><input type="checkbox" id="prizeMajor" /><label for="prizeMajor" style="margin:0;text-transform:none;font-size:14px;color:var(--text);letter-spacing:0;">⭐ Marcar como Premio Mayor</label></div>
-        <button class="btn btn-gold btn-block" onclick="addPrize()">➕ Agregar premio</button>
+      <div class="card section">
+        <h2 class="card-title">Agregar premio</h2>
+        <label>Nombre del premio<input id="prizeName" placeholder="Ej: Parlante JBL o Giftcard $50.000" /></label>
+        <label>Detalle o auspiciador (opcional)<input id="prizeDesc" placeholder="Ej: Entregado por Tienda X" /></label>
+        <label class="check-row"><input type="checkbox" id="prizeMajor" />Es el premio mayor</label>
+        <button class="btn btn-dark btn-block" onclick="addPrize()">Agregar premio</button>
       </div>
       <div class="card">
-        <h2 class="card-title">🏆 Lista de premios (orden del sorteo)</h2>
-        <div id="prizesList" style="margin-top:8px;"></div>
+        <h2 class="card-title">Premios en orden de sorteo</h2>
+        <div id="prizesList" style="margin-top:6px;"></div>
       </div>
     </section>
 
     <!-- ============ SORTEO ============ -->
     <section class="tab-panel" id="tab-sorteo">
-      <div class="card">
-        <div class="btn-row" style="margin-top:0;">
-          <button class="btn btn-secondary btn-sm" id="btnSimToggle" onclick="toggleSimMode()">🧪 Simulacro: OFF</button>
-          <button class="btn btn-secondary btn-sm" id="btnSoundToggle" onclick="toggleSound()">🔊 Sonido: ON</button>
+      <div class="card section">
+        <label>Premio a sortear<select id="drawPrizeSelect" onchange="updateLiveStageHeader()"></select></label>
+        <p class="hint" id="drawPoolInfo"></p>
+        <p class="hint warn hidden" id="drawBackupNotice">Tienes cambios sin respaldar. Respalda antes del sorteo en vivo.</p>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" id="btnSimToggle" onclick="toggleSimMode()">Simulacro: no</button>
+          <button class="btn btn-secondary btn-sm" id="btnSoundToggle" onclick="toggleSound()">Sonido: sí</button>
         </div>
-        <label for="drawPrizeSelect">Premio a sortear ahora</label>
-        <select id="drawPrizeSelect" onchange="updateLiveStageHeader()"></select>
-        <div class="hint" id="drawPoolInfo"></div>
-        <div class="hint warn hidden" id="drawBackupNotice">⚠️ Tienes cambios sin respaldar. Respalda antes del sorteo en vivo.</div>
-        <button class="btn btn-secondary btn-block btn-sm" onclick="toggleLiveFullscreen()">📺 Modo pantalla completa (para transmitir)</button>
+        <button class="btn btn-dark btn-block" onclick="toggleLiveFullscreen()"><svg class="ic"><use href="#i-screen"/></svg>Pantalla completa para transmitir</button>
       </div>
 
       <div class="live-stage" id="liveStage">
         <div class="sim-ribbon hidden" id="simRibbon">SIMULACRO</div>
-        <span class="live-mini hidden" id="liveSoundMini" onclick="toggleSound()">🔊</span>
-        <span class="live-badge" id="liveContestBadge">CONCURSO</span>
-        <div class="live-prize" id="livePrizeName">Sin premios pendientes</div>
-        <div class="roulette">
-          <div class="roulette-code" id="rouletteCode">CN-??????</div>
-          <div class="roulette-winner" id="rouletteWinner">Listo para girar</div>
-          <div class="roulette-rut" id="rouletteRut"></div>
+        <div class="live-top">
+          <span class="live-org" id="liveContestBadge">CONCURSO</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="live-mini hidden" id="liveSoundMini" onclick="toggleSound()" aria-label="Sonido">♪</button>
+            <span class="live-pill">EN VIVO</span>
+          </div>
         </div>
-        <button class="btn btn-gold btn-block" id="btnStartDraw" onclick="startLiveDraw()">🎲 SORTEAR GANADOR</button>
+        <div>
+          <span class="live-kicker">PREMIO</span>
+          <h2 class="live-prize" id="livePrizeName">Sin premios pendientes</h2>
+        </div>
+        <div class="win-ticket">
+          <span class="win-label">NÚMERO GANADOR</span>
+          <span class="roulette-code" id="rouletteCode">??????</span>
+          <hr />
+          <span class="roulette-winner" id="rouletteWinner">Listo para sortear</span>
+          <span class="roulette-rut" id="rouletteRut"></span>
+        </div>
+        <button class="btn btn-gold btn-block" id="btnStartDraw" onclick="startLiveDraw()">Sortear ganador</button>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <h2 class="card-title">🏅 Ganadores registrados</h2>
-          <button class="btn btn-danger btn-sm hidden" id="btnUndoLastWinner" onclick="undoLastWinner()">↩️ Anular último</button>
+          <h2 class="card-title">Ganadores</h2>
+          <button class="btn btn-danger btn-sm hidden" id="btnUndoLastWinner" onclick="undoLastWinner()">Anular último</button>
         </div>
         <div id="winnersList"></div>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">🔎 Verificar ticket</h2>
-        <div class="row2" style="grid-template-columns:1fr auto;margin-top:8px;">
-          <input id="verifyInput" placeholder="Código CN-... o ID S-..." onkeydown="if(event.key==='Enter')verifyCode()" />
-          <button class="btn btn-secondary btn-sm" onclick="openQrScanner()">📷 QR</button>
+      <div class="card section">
+        <h2 class="card-title">Verificar un número</h2>
+        <div style="display:flex;gap:8px;">
+          <input id="verifyInput" aria-label="Número o ID de venta" placeholder="CN-… o S-…" onkeydown="if(event.key==='Enter')verifyCode()" />
+          <button class="btn btn-secondary" onclick="openQrScanner()" aria-label="Escanear QR"><svg class="ic"><use href="#i-qr"/></svg></button>
         </div>
-        <button class="btn btn-info btn-block btn-sm" style="margin-top:8px;" onclick="verifyCode()">Verificar</button>
-        <div id="verifyResult" style="margin-top:10px;font-size:13px;"></div>
+        <button class="btn btn-dark btn-block" onclick="verifyCode()">Verificar</button>
+        <div id="verifyResult" style="font-size:14px;"></div>
       </div>
     </section>
 
     <!-- ============ AJUSTES ============ -->
     <section class="tab-panel" id="tab-ajustes">
-      <div class="card">
-        <div class="card-head">
-          <h2 class="card-title">🎨 Diseño del ticket PNG</h2>
-          <button class="btn btn-secondary btn-sm" onclick="previewSampleTicket()">👁️ Vista previa</button>
+      <div class="card section" id="contestCard">
+        <h2 class="card-title">Concurso activo</h2>
+        <select id="contestSelector" aria-label="Concurso activo" onchange="switchContest(this.value)"></select>
+        <details class="more">
+          <summary>Crear concurso nuevo</summary>
+          <div class="section" style="margin-top:8px;">
+            <label>Nombre<input id="newContestName" placeholder="Ej: Rifa Navidad Club Deportivo" /></label>
+            <label>Fecha del sorteo<input id="newContestDate" placeholder="Ej: 24 de diciembre, 20:00" /></label>
+            <label>Instagram o contacto<input id="newContestContact" placeholder="@tuconcurso" /></label>
+            <span class="section-title" style="font-size:14px;">Packs (números · precio)</span>
+            <div class="row2"><input id="p1Qty" type="number" value="1" aria-label="Pack 1 números" /><input id="p1Price" type="number" value="2000" aria-label="Pack 1 precio" /></div>
+            <div class="row2"><input id="p2Qty" type="number" value="3" aria-label="Pack 2 números" /><input id="p2Price" type="number" value="5000" aria-label="Pack 2 precio" /></div>
+            <div class="row2"><input id="p3Qty" type="number" value="8" aria-label="Pack 3 números" /><input id="p3Price" type="number" value="10000" aria-label="Pack 3 precio" /></div>
+            <button class="btn btn-dark btn-block" onclick="createNewContest()">Crear concurso</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="card section">
+        <h2 class="card-title">Datos del concurso</h2>
+        <label>Nombre<input id="editContestName" /></label>
+        <label>Fecha del sorteo<input id="editContestDate" /></label>
+        <label>Instagram o contacto en el ticket<input id="editContestContact" /></label>
+        <button class="btn btn-secondary btn-block" onclick="saveCurrentContestMeta()">Guardar cambios</button>
+      </div>
+
+      <div class="card section">
+        <div class="card-head" style="margin:0;">
+          <h2 class="card-title">Diseño del ticket</h2>
+          <button class="btn btn-secondary btn-sm" onclick="previewSampleTicket()">Vista previa</button>
         </div>
-        <label>Tema de color</label>
         <div class="theme-grid" id="themePicker"></div>
-        <label for="logoInput">Logo o foto del premio (opcional)</label>
-        <input type="file" id="logoInput" accept="image/*" onchange="handleLogoUpload(event)" />
+        <label>Logo (opcional)<input type="file" id="logoInput" accept="image/*" onchange="handleLogoUpload(event)" /></label>
         <div class="logo-preview hidden" id="logoPreviewWrap">
-          <img id="logoPreviewThumb" alt="Logo" />
-          <div style="flex:1;"><div class="hint" id="logoSizeInfo" style="margin:0 0 6px;"></div>
+          <img id="logoPreviewThumb" alt="Logo actual" />
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><span class="hint" id="logoSizeInfo"></span>
           <button class="btn btn-danger btn-sm" onclick="removeContestLogo()">Quitar logo</button></div>
         </div>
       </div>
 
-      <div class="card">
-        <h2 class="card-title">💾 Respaldo y Cuadratura</h2>
+      <div class="card section">
+        <h2 class="card-title">Respaldo</h2>
         <div class="btn-row">
-          <button class="btn btn-gold" onclick="exportContestJson()">📦 Respaldo JSON</button>
-          <button class="btn btn-secondary" onclick="exportContestCsv()">📊 Excel (CSV)</button>
+          <button class="btn btn-dark" onclick="exportContestJson()">Respaldo JSON</button>
+          <button class="btn btn-secondary" onclick="exportContestCsv()">Excel (CSV)</button>
         </div>
-        <label for="importInput">Restaurar concurso desde archivo JSON</label>
-        <input type="file" id="importInput" accept="application/json,.json" onchange="importContestJson(event)" />
-      </div>
-
-      <div class="card">
-        <h2 class="card-title">🎯 Concursos</h2>
-        <label for="contestSelector">Concurso activo</label>
-        <select id="contestSelector" onchange="switchContest(this.value)"></select>
-        <details class="quick" style="margin-top:10px;">
-          <summary style="color:var(--primary);">➕ Crear nuevo concurso</summary>
-          <label for="newContestName">Nombre</label>
-          <input id="newContestName" placeholder="Ej: Rifa Navidad 2026" />
-          <label for="newContestDate">Fecha del sorteo</label>
-          <input id="newContestDate" placeholder="Ej: 24 de diciembre, 20:00" />
-          <label for="newContestContact">Contacto / red social</label>
-          <input id="newContestContact" placeholder="@tuconcurso" />
-          <label>Packs (cantidad · precio)</label>
-          <div class="row2"><input id="p1Qty" type="number" value="1" /><input id="p1Price" type="number" value="2000" /></div>
-          <div class="row2" style="margin-top:6px;"><input id="p2Qty" type="number" value="3" /><input id="p2Price" type="number" value="5000" /></div>
-          <div class="row2" style="margin-top:6px;"><input id="p3Qty" type="number" value="8" /><input id="p3Price" type="number" value="10000" /></div>
-          <button class="btn btn-primary btn-block btn-sm" style="margin-top:10px;" onclick="createNewContest()">Crear concurso</button>
-        </details>
-      </div>
-
-      <div class="card">
-        <h2 class="card-title">⚙️ Datos del concurso actual</h2>
-        <label for="editContestName">Nombre</label>
-        <input id="editContestName" />
-        <label for="editContestDate">Fecha del sorteo</label>
-        <input id="editContestDate" />
-        <label for="editContestContact">Contacto / red social en el ticket</label>
-        <input id="editContestContact" />
-        <button class="btn btn-secondary btn-block" style="margin-top:12px;" onclick="saveCurrentContestMeta()">Guardar cambios</button>
+        <label>Restaurar desde un respaldo JSON<input type="file" id="importInput" accept="application/json,.json" onchange="importContestJson(event)" /></label>
       </div>
     </section>
   </main>
 
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="vender" onclick="switchTab('vender')"><span class="ic">🎟️</span>Vender</button>
-    <button class="nav-btn" data-tab="premios" onclick="switchTab('premios')"><span class="ic">🎁</span>Premios</button>
-    <button class="nav-btn" data-tab="sorteo" onclick="switchTab('sorteo')"><span class="ic">🎲</span>Sorteo</button>
-    <button class="nav-btn" data-tab="ajustes" onclick="switchTab('ajustes')"><span class="ic">⚙️</span>Ajustes</button>
+  <div class="sale-bar" id="saleBar">
+    <div class="total"><b id="saleBarTotal">$0</b><span id="saleBarCount">0 números</span></div>
+    <button class="btn btn-primary" id="btnCreateSale" onclick="createSale()">Emitir números</button>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Secciones">
+    <button class="nav-btn active" data-tab="vender" onclick="switchTab('vender')"><svg class="ic"><use href="#i-ticket"/></svg>Vender</button>
+    <button class="nav-btn" data-tab="premios" onclick="switchTab('premios')"><svg class="ic"><use href="#i-gift"/></svg>Premios</button>
+    <button class="nav-btn" data-tab="sorteo" onclick="switchTab('sorteo')"><svg class="ic"><use href="#i-draw"/></svg>Sorteo</button>
+    <button class="nav-btn" data-tab="ajustes" onclick="switchTab('ajustes')"><svg class="ic"><use href="#i-settings"/></svg>Ajustes</button>
   </nav>
 
-  <button class="btn btn-secondary btn-sm exit-live hidden" id="exitLiveBtn" onclick="toggleLiveFullscreen()">✕ Salir</button>
+  <button class="btn btn-sm exit-live hidden" id="exitLiveBtn" onclick="toggleLiveFullscreen()">Salir</button>
 
-  <!-- Modal ticket -->
+  <!-- Venta lista -->
   <div class="modal" id="ticketModal" onclick="if(event.target===this)closeTicketModal()">
-    <div class="modal-box">
-      <div class="card-head" style="margin:0;">
-        <h2 class="card-title" id="ticketModalTitle">🎟️ Ticket listo para enviar</h2>
-        <button class="btn btn-secondary btn-sm" onclick="closeTicketModal()">✕</button>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="ticketModalTitle">
+      <div class="sheet-top">
+        <button class="icon-btn" onclick="closeTicketModal()" aria-label="Cerrar"><svg class="ic"><use href="#i-back"/></svg></button>
+        <span class="hint" id="ticketModalSaleId"></span>
       </div>
-      <div class="hint ok hidden" id="ticketModalSummary"></div>
-      <img id="ticketPreviewImg" alt="Ticket" />
-      <div id="ticketModalActions">
-        <button class="btn btn-primary btn-block" onclick="shareCurrentTicket()">📤 Compartir imagen</button>
+      <div>
+        <div class="done-title"><span class="tick"><svg class="ic ic-sm" style="stroke-width:3"><use href="#i-check"/></svg></span><h2 id="ticketModalTitle">Números emitidos</h2></div>
+        <p class="hint" id="ticketModalSummary" style="margin-top:6px;font-size:15px;"></p>
+      </div>
+      <img class="ticket-img" id="ticketPreviewImg" alt="Ticket del comprador" />
+      <div class="codes-preview" id="ticketCodesPreview"></div>
+      <div id="ticketModalActions" class="section">
+        <button class="btn btn-dark btn-block btn-wa" id="btnShareWA" onclick="shareCurrentTicket()"><svg class="ic" style="color:var(--yellow)"><use href="#i-wa"/></svg><span id="btnShareWALabel">Enviar por WhatsApp</span></button>
         <div class="btn-row">
-          <button class="btn btn-secondary btn-sm" onclick="downloadCurrentTicket()">⬇️ Descargar PNG</button>
-          <button class="btn btn-info btn-sm" onclick="openWhatsAppChat()">💬 Abrir WhatsApp</button>
+          <button class="btn btn-secondary" onclick="downloadCurrentTicket()">Guardar imagen</button>
+          <button class="btn btn-secondary" onclick="closeTicketModal()">Nueva venta</button>
+        </div>
+        <div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;">
+          <button class="btn-link" onclick="openWhatsAppChat()">Enviar solo texto</button>
+          <button class="btn-link" onclick="undoCurrentSale()">Deshacer esta venta</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal escáner QR -->
+  <!-- Escáner QR -->
   <div class="modal" id="qrScannerModal">
     <div class="modal-box">
-      <div class="card-head" style="margin:0;">
-        <h2 class="card-title">📷 Escanear QR</h2>
-        <button class="btn btn-secondary btn-sm" onclick="closeQrScanner()">✕</button>
+      <div class="sheet-top">
+        <h2 class="card-title">Escanear QR</h2>
+        <button class="icon-btn" onclick="closeQrScanner()" aria-label="Cerrar">✕</button>
       </div>
       <video id="qrVideo" playsinline muted></video>
-      <div class="hint" id="qrScannerStatus">Iniciando cámara...</div>
+      <p class="hint" id="qrScannerStatus">Iniciando cámara…</p>
     </div>
   </div>
 
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
   <canvas id="confettiCanvas"></canvas>
 
-  <script src="./app.js?v=8"></script>
+  <script src="./app.js?v=9"></script>
 </body>
 </html>
